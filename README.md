@@ -72,7 +72,7 @@ In your forked repository, open **Settings → Pages**. Under **Build and deploy
 *(Coming with the first release.)* The extension isn't published in a store. You load it from the `extension` folder:
 
 1. Download or clone your copy of this repository.
-2. In your browser, open the extensions page (`chrome://extensions` or `edge://extensions`) and turn on **Developer mode**.
+2. In your browser, open the extensions page (`chrome://extensions` or `edge://extensions` or whatever the link is for the browser you use--you can search for this online for your specific browser) and turn on **Developer mode**.
 3. Click **Load unpacked** and choose the `extension` folder.
 4. Open the extension, paste the same Firebase config, and sign in with the same email and master password.
 

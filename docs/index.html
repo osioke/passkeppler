@@ -1,2 +1,71 @@
 <!doctype html>
-<html><body><h1>passkeppler works</h1></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>passkeppler</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="page">
+    <header class="brand">
+      <h1>passkeppler</h1>
+      <p>A broke man's alternative to password keeping.</p>
+    </header>
+
+    <!-- 1. First run: connect to your own Firebase project -->
+    <section id="view-setup" hidden>
+      <h2>Connect your Firebase project</h2>
+      <p>Paste the config Firebase showed you when you registered the web app. It starts with <code>const firebaseConfig = {</code>. It is saved on this device only.</p>
+      <form id="setup-form" novalidate>
+        <label for="config-text">Firebase config</label>
+        <textarea id="config-text" rows="9" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+        <p class="error" id="setup-error" role="alert"></p>
+        <div class="actions">
+          <button type="submit">Save config</button>
+          <button type="button" class="link" id="setup-cancel" hidden>Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 2. Unlock, or create the account the first time -->
+    <section id="view-auth" hidden>
+      <h2 id="auth-title">Unlock your vault</h2>
+      <form id="auth-form" novalidate>
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false">
+
+        <label for="password">Master password</label>
+        <input id="password" type="password" autocomplete="current-password">
+
+        <div id="confirm-group" hidden>
+          <label for="confirm">Master password again</label>
+          <input id="confirm" type="password" autocomplete="new-password">
+          <p class="warning">There is no way to recover this password. If you forget it, your vault can't be opened by anyone. Write it on paper and keep it somewhere safe.</p>
+        </div>
+
+        <p class="error" id="auth-error" role="alert"></p>
+        <div class="actions">
+          <button type="submit" id="auth-submit">Unlock</button>
+          <button type="button" class="link" id="auth-toggle">Create an account instead</button>
+        </div>
+      </form>
+      <p class="footnote"><button type="button" class="link" id="change-config">Change Firebase config</button></p>
+    </section>
+
+    <!-- 3. Unlocked -->
+    <section id="view-vault" hidden>
+      <h2>Vault unlocked</h2>
+      <p>Signed in as <strong id="who"></strong>.</p>
+      <p>Nothing is saved yet. Adding entries and importing from 1Password come next.</p>
+      <div class="actions">
+        <button type="button" id="lock">Lock</button>
+      </div>
+    </section>
+
+    <noscript><p class="error">passkeppler needs JavaScript to run.</p></noscript>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
