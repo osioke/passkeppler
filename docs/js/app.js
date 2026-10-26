@@ -1,5 +1,7 @@
 import { deriveKeys } from "./crypto.js";
 import * as store from "./store.js";
+import { setupRevealToggles, hideAllPasswords } from "./ui.js";
+import { openVault, closeVault } from "./vault.js";
 
 const $ = (id) => document.getElementById(id);
 const views = ["setup", "auth", "vault"];
@@ -11,6 +13,7 @@ let mode = "unlock"; // or "create"
 
 function show(name, focusId) {
   for (const view of views) $("view-" + view).hidden = view !== name;
+  document.body.dataset.view = name;
   document.title =
     (name === "setup" ? "Connect Firebase" : name === "vault" ? "Vault" : mode === "create" ? "Create account" : "Unlock") +
     " · passkeppler";
@@ -27,41 +30,7 @@ function fail(errorId, message, focusId) {
   if (focusId) $(focusId).focus();
 }
 
-// ---- Show / hide for password-type fields ----
-// Any <input data-reveal> gets a Show/Hide button at its end.
-
-const revealers = [];
-
-function addRevealToggle(input) {
-  const label = document.querySelector(`label[for="${input.id}"]`).textContent.trim().toLowerCase();
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "link reveal";
-  button.setAttribute("aria-controls", input.id);
-
-  const set = (visible) => {
-    input.type = visible ? "text" : "password";
-    button.textContent = visible ? "Hide" : "Show";
-    button.setAttribute("aria-pressed", String(visible));
-    button.setAttribute("aria-label", (visible ? "Hide " : "Show ") + label);
-  };
-
-  button.addEventListener("click", (event) => {
-    set(input.type === "password");
-    // Mouse and touch: stay in the field. Keyboard: leave focus on the button.
-    if (event.detail > 0) input.focus();
-  });
-
-  input.after(button);
-  set(false);
-  revealers.push(() => set(false));
-}
-
-function hideAllPasswords() {
-  for (const reset of revealers) reset();
-}
-
-document.querySelectorAll("input[data-reveal]").forEach(addRevealToggle);
+setupRevealToggles();
 
 // ---- Connect Firebase ----
 
@@ -139,8 +108,8 @@ $("auth-form").addEventListener("submit", async (event) => {
     $("password").value = "";
     $("confirm").value = "";
     hideAllPasswords();
-    $("who").textContent = email;
-    show("vault", "lock");
+    openVault(email, encKey);
+    show("vault");
   } catch (err) {
     setError("auth-error", store.describeError(err));
   } finally {
@@ -152,6 +121,7 @@ $("auth-form").addEventListener("submit", async (event) => {
 
 $("lock").addEventListener("click", async () => {
   session = null;
+  closeVault();
   hideAllPasswords();
   try {
     await store.signOut();

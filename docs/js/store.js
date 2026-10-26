@@ -57,6 +57,8 @@ export function parseConfig(text) {
 
 let fb = null;
 let auth = null;
+let db = null;
+let uid = null;
 
 export async function connect(config) {
   if (auth) return;
@@ -67,18 +69,48 @@ export async function connect(config) {
   }
   const app = fb.initializeApp(config);
   auth = fb.getAuth(app);
+  try {
+    // Keeps an (already scrambled) copy of the vault on this device, so it still opens offline.
+    db = fb.initializeFirestore(app, {
+      localCache: fb.persistentLocalCache({ tabManager: fb.persistentMultipleTabManager() }),
+    });
+  } catch {
+    db = fb.getFirestore(app);
+  }
 }
 
-export function signUp(email, authPassword) {
-  return fb.createUserWithEmailAndPassword(auth, email.trim(), authPassword);
+export async function signUp(email, authPassword) {
+  const credential = await fb.createUserWithEmailAndPassword(auth, email.trim(), authPassword);
+  uid = credential.user.uid;
 }
 
-export function signIn(email, authPassword) {
-  return fb.signInWithEmailAndPassword(auth, email.trim(), authPassword);
+export async function signIn(email, authPassword) {
+  const credential = await fb.signInWithEmailAndPassword(auth, email.trim(), authPassword);
+  uid = credential.user.uid;
 }
 
 export async function signOut() {
+  uid = null;
   if (auth) await fb.signOut(auth);
+}
+
+// ---- Entries ----
+// Each entry is stored as one scrambled blob: { id, schemaVersion, updatedAt, iv, ct }.
+
+// Calls onChange with the full list of stored entries now, and again whenever it changes
+// (including changes made on another device). Returns a function that stops listening.
+export function subscribeEntries(onChange, onError) {
+  const entries = fb.collection(db, "users", uid, "entries");
+  return fb.onSnapshot(entries, (snapshot) => onChange(snapshot.docs.map((d) => d.data())), onError);
+}
+
+// Saves on this device straight away, and to Firebase when it can.
+export function putEntry(entryDoc) {
+  return fb.setDoc(fb.doc(db, "users", uid, "entries", entryDoc.id), entryDoc);
+}
+
+export function removeEntry(id) {
+  return fb.deleteDoc(fb.doc(db, "users", uid, "entries", id));
 }
 
 export function describeError(err) {
@@ -95,6 +127,9 @@ export function describeError(err) {
     "auth/api-key-not-valid.-please-pass-a-valid-api-key.": "The Firebase config has an invalid API key. Check the config you pasted.",
     "auth/unauthorized-domain": "This web address isn't allowed in your Firebase project. Add it under Authentication, then Settings, then Authorised domains.",
     "auth/configuration-not-found": "Authentication isn't set up in your Firebase project yet. Open Authentication and click Get started.",
+    "permission-denied": "Firebase refused this. Publish the rules from firestore.rules in your Firebase project (Firestore Database, then Rules).",
+    "unavailable": "Couldn't reach Firebase. Your changes are kept on this device and will sync when you're back online.",
+    "not-found": "Your Firestore database hasn't been created yet. Create it in the Firebase console under Firestore Database.",
   };
   if (err && messages[err.code]) return messages[err.code];
   if (err && err.message && !err.code) return err.message;

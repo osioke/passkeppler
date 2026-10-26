@@ -134,8 +134,7 @@ button {
   cursor: pointer;
 }
 
-button[type="submit"],
-button:not(.link) {
+button:not(.link):not(.plain) {
   min-height: 2.75rem;
   padding: 0.6rem 1.25rem;
   color: var(--accent-ink);
@@ -220,3 +219,183 @@ input:-webkit-autofill {
 @media (prefers-reduced-motion: no-preference) {
   button, input, textarea { transition: border-color 0.12s, box-shadow 0.12s, opacity 0.12s; }
 }
+
+/* ---- Vault ---- */
+
+body[data-view="vault"] .page { max-width: 40rem; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.muted { color: var(--muted); }
+.small { font-size: 0.9rem; }
+.help { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.9rem; }
+
+.vault-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+
+.vault-who {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.notice {
+  min-height: 1.55em;
+  margin: 0 0 0.5rem;
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+.notice.is-error { color: var(--danger); }
+.notice:empty { display: none; }
+
+.list-tools {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.list-tools input { flex: 1; min-width: 0; }
+.list-tools button { flex: none; }
+
+#list-summary { margin: 0.75rem 0 0.25rem; font-size: 0.9rem; }
+
+.entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entries li { border-bottom: 1.5px solid var(--rule); }
+.entries li:first-child { border-top: 1.5px solid var(--rule); }
+
+/* Buttons that should look like plain text rows, not solid buttons */
+button.plain {
+  display: block;
+  width: 100%;
+  padding: 0.7rem 0;
+  color: var(--ink);
+  font-weight: 400;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+button.plain:hover { color: var(--accent); }
+
+.entry-title { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.entry-sub { display: block; color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
+
+#pane-detail h3,
+#pane-edit h3 {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 1.35rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+#pane-detail h3:focus,
+#pane-edit h3:focus { outline: none; }
+
+.rows { margin: 0; }
+
+.row {
+  padding: 0.75rem 0;
+  border-bottom: 1.5px solid var(--rule);
+}
+
+.row:first-child { border-top: 1.5px solid var(--rule); }
+
+.row dt {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.row dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 1rem;
+  margin: 0;
+}
+
+.row dd > .plain-value,
+.row dd > .secret { overflow-wrap: anywhere; }
+
+.row-actions { display: inline-flex; gap: 1rem; align-items: baseline; margin-left: auto; }
+.row-actions button.link,
+.row-actions a { min-height: 2.75rem; display: inline-flex; align-items: center; }
+.row-actions a { color: var(--accent); text-underline-offset: 3px; }
+
+.secret { font-family: var(--mono); letter-spacing: 0.05em; }
+.notes { white-space: pre-wrap; }
+
+.row dd:has(.codes) { display: block; }
+
+.codes { margin: 0.25rem 0; padding: 0; list-style: none; }
+
+.code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+button.plain.code {
+  width: auto;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+}
+
+button.plain.code.used { color: var(--muted); text-decoration: line-through; }
+
+.danger { color: var(--danger); }
+
+fieldset {
+  margin: 1.5rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.custom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 1rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1.5px solid var(--rule);
+}
+
+.check { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0; min-height: 2.75rem; }
+.check input { display: inline-block; width: 1.1rem; height: 1.1rem; margin: 0; accent-color: var(--accent); }
+
+@media (max-width: 30rem) {
+  .custom-row { grid-template-columns: 1fr; }
+}
+
+.custom-row > button.link { justify-self: start; }
