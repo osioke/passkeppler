@@ -105,7 +105,7 @@ textarea {
 textarea {
   padding: 0.6rem 0.7rem;
   font-family: var(--mono);
-  font-size: 0.85rem;
+  font-size: 1rem; /* 16px, so phones don't zoom in when the field is tapped */
   line-height: 1.5;
   border: 1.5px solid var(--rule);
   border-radius: 4px;
@@ -136,6 +136,7 @@ button {
 
 button[type="submit"],
 button:not(.link) {
+  min-height: 2.75rem;
   padding: 0.6rem 1.25rem;
   color: var(--accent-ink);
   font-weight: 600;
@@ -150,6 +151,7 @@ button:disabled {
 }
 
 button.link {
+  min-height: 2.75rem; /* comfortable tap target */
   padding: 0;
   color: var(--accent);
   font-weight: 400;
@@ -162,6 +164,33 @@ button.link {
 button:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
+}
+
+.field {
+  position: relative;
+}
+
+.field input {
+  padding-right: 4.25rem;
+}
+
+/* Show / hide button sitting at the end of a password field */
+.field .reveal {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  min-width: 3.5rem;
+  padding: 0 0.25rem;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+/* Keep browser autofill from painting its own colours over the page */
+input:-webkit-autofill {
+  -webkit-text-fill-color: var(--ink);
+  caret-color: var(--ink);
+  transition: background-color 600000s 0s;
 }
 
 .error {

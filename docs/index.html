@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>passkeppler</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,12 +15,12 @@
     </header>
 
     <!-- 1. First run: connect to your own Firebase project -->
-    <section id="view-setup" hidden>
-      <h2>Connect your Firebase project</h2>
+    <section id="view-setup" aria-labelledby="setup-title" hidden>
+      <h2 id="setup-title">Connect your Firebase project</h2>
       <p>Paste the config Firebase showed you when you registered the web app. It starts with <code>const firebaseConfig = {</code>. It is saved on this device only.</p>
       <form id="setup-form" novalidate>
         <label for="config-text">Firebase config</label>
-        <textarea id="config-text" rows="9" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+        <textarea id="config-text" rows="9" spellcheck="false" autocomplete="off" autocapitalize="none" autocorrect="off" aria-describedby="setup-error"></textarea>
         <p class="error" id="setup-error" role="alert"></p>
         <div class="actions">
           <button type="submit">Save config</button>
@@ -29,18 +30,22 @@
     </section>
 
     <!-- 2. Unlock, or create the account the first time -->
-    <section id="view-auth" hidden>
+    <section id="view-auth" aria-labelledby="auth-title" hidden>
       <h2 id="auth-title">Unlock your vault</h2>
       <form id="auth-form" novalidate>
         <label for="email">Email</label>
-        <input id="email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false">
+        <input id="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-describedby="auth-error">
 
         <label for="password">Master password</label>
-        <input id="password" type="password" autocomplete="current-password">
+        <div class="field">
+          <input id="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-describedby="auth-error" data-reveal>
+        </div>
 
         <div id="confirm-group" hidden>
           <label for="confirm">Master password again</label>
-          <input id="confirm" type="password" autocomplete="new-password">
+          <div class="field">
+            <input id="confirm" type="password" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-describedby="auth-error" data-reveal>
+          </div>
           <p class="warning">There is no way to recover this password. If you forget it, your vault can't be opened by anyone. Write it on paper and keep it somewhere safe.</p>
         </div>
 
@@ -54,8 +59,8 @@
     </section>
 
     <!-- 3. Unlocked -->
-    <section id="view-vault" hidden>
-      <h2>Vault unlocked</h2>
+    <section id="view-vault" aria-labelledby="vault-title" hidden>
+      <h2 id="vault-title">Vault unlocked</h2>
       <p>Signed in as <strong id="who"></strong>.</p>
       <p>Nothing is saved yet. Adding entries and importing from 1Password come next.</p>
       <div class="actions">
