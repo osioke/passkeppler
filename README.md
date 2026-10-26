@@ -29,6 +29,10 @@ It isn't a full replacement for a commercial password manager. It has no team sh
 
 You choose **one master password**. It's the only password you have to remember.
 
+**Your account password is your master password.** Many password managers make you sign up with one password and then set up a separate master password. passkeppler keeps this simple: when you create your account, the password you enter *is* your master password. There is no second one.
+
+It still does two separate jobs behind the scenes. Your password is turned into two different values. One is used to sign in to Firebase, and the other is used to scramble your vault. The second value never leaves your device, so Firebase can sign you in without ever being able to read your data.
+
 Before anything is saved, your vault is scrambled on your own device using that password. What reaches the database is unreadable, so even someone looking straight at it can't see your passwords. Only your master password can unscramble it.
 
 The data is stored in **your own Firebase project** (a free Google service), not on a server run by someone else. The code in this repository contains no one's database details. You paste in your own.
@@ -64,7 +68,7 @@ In your forked repository, open **Settings → Pages**. Under **Build and deploy
 
 1. Open your web page.
 2. Paste the Firebase config you copied.
-3. Enter your email and choose a master password, then create your account.
+3. Enter your email and choose a password, then create your account. This is your **master password**, not a separate account password. You'll type it every time you unlock the vault, and it can't be recovered if you forget it. Use at least 12 characters; a few random words joined together works well.
 4. Optional: in Firebase, once your account exists, you can disable new sign-ups so nobody else can register on your project.
 
 ### 5. Install the browser extension
@@ -72,7 +76,7 @@ In your forked repository, open **Settings → Pages**. Under **Build and deploy
 *(Coming with the first release.)* The extension isn't published in a store. You load it from the `extension` folder:
 
 1. Download or clone your copy of this repository.
-2. In your browser, open the extensions page (`chrome://extensions` or `edge://extensions` or whatever the link is for the browser you use--you can search for this online for your specific browser) and turn on **Developer mode**.
+2. In your browser, open the extensions page (`chrome://extensions` in Chrome, `edge://extensions` in Edge) and turn on **Developer mode**. Other browsers have their own address and menu names, so if you use a different one, search online for "[your browser] extensions page".
 3. Click **Load unpacked** and choose the `extension` folder.
 4. Open the extension, paste the same Firebase config, and sign in with the same email and master password.
 
