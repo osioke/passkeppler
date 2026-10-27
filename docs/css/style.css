@@ -399,3 +399,63 @@ legend {
 }
 
 .custom-row > button.link { justify-self: start; }
+
+/* ---- Tools row, selects, numbers ---- */
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+}
+
+select {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0;
+  color: var(--ink);
+  font: inherit;
+  background: transparent;
+  border: 0;
+  border-bottom: 1.5px solid var(--rule);
+  border-radius: 0;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 2px 0 0 var(--accent);
+}
+
+option {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+input.num { width: 6rem; }
+
+/* ---- Password generator ---- */
+
+.gen-toggle { margin: 0.5rem 0 0; }
+
+.gen-panel {
+  margin: 0.25rem 0 0;
+  padding: 0.25rem 0 0.75rem 1rem;
+  border-left: 3px solid var(--rule);
+}
+
+.gen-mode { margin-top: 0.5rem; }
+.gen-mode .check { margin-right: 1.25rem; }
+
+.gen-output {
+  min-height: 3.5rem;
+  margin-top: 0.15rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+  resize: none;
+  field-sizing: content;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}

@@ -4,6 +4,7 @@
 import { encryptJSON, decryptJSON } from "./crypto.js";
 import * as store from "./store.js";
 import { el, copyText } from "./ui.js";
+import { mountGenerator } from "./generator.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -47,6 +48,8 @@ export function closeVault() {
   $("pane-detail").replaceChildren();
   $("pane-edit").reset();
   $("custom-rows").replaceChildren();
+  setGenPanel(false);
+  $("generator-root").replaceChildren(); // a generated password shouldn't linger once the vault is locked
   notify("");
 }
 
@@ -111,11 +114,10 @@ async function persist(entry) {
 // ---- Panes ----
 
 function showPane(name) {
-  $("pane-list").hidden = name !== "list";
-  $("pane-detail").hidden = name !== "detail";
-  $("pane-edit").hidden = name !== "edit";
+  for (const pane of ["list", "detail", "edit", "generator"]) $("pane-" + pane).hidden = pane !== name;
   if (name === "detail") $("detail-title")?.focus();
   if (name === "edit") $("edit-title").focus();
+  if (name === "generator") $("generator-title").focus();
 }
 
 function notify(message, isError = false) {
@@ -373,6 +375,7 @@ function openEditor(entry) {
   $("f-codes").value = entry?.backupCodes || "";
   $("custom-rows").replaceChildren();
   for (const field of entry?.customFields || []) addCustomRow(field);
+  setGenPanel(false);
   // Make sure the password starts hidden.
   $("f-password").type = "password";
   const toggle = document.querySelector('button.reveal[aria-controls="f-password"]');
@@ -434,3 +437,48 @@ $("pane-edit").addEventListener("submit", async (event) => {
   openDetail(entry.id);
   notify("Saved.");
 });
+
+// ---- Password generator ----
+
+// In the entry form: a panel under the password field.
+let formGenerator = null;
+
+function setGenPanel(open) {
+  const panel = $("f-gen");
+  const toggle = $("toggle-gen");
+  panel.hidden = !open;
+  toggle.setAttribute("aria-expanded", String(open));
+  toggle.textContent = open ? "Hide the generator" : "Generate a password";
+  if (!open) {
+    panel.replaceChildren();
+    formGenerator = null;
+  } else if (formGenerator) formGenerator.regenerate();
+  else formGenerator = mountGenerator(panel, { onUse: useGenerated });
+}
+
+function useGenerated(password) {
+  $("f-password").value = password;
+  setGenPanel(false);
+  $("f-password").focus();
+  notify("Password filled in. Choose Show to check it, then Save.");
+}
+
+$("toggle-gen").addEventListener("click", () => setGenPanel($("f-gen").hidden));
+
+// On its own: from the list.
+let returnFocus = null;
+
+$("open-generator").addEventListener("click", () => {
+  returnFocus = $("open-generator");
+  mountGenerator($("generator-root"));
+  showPane("generator");
+});
+
+document.querySelectorAll("[data-back]").forEach((button) =>
+  button.addEventListener("click", () => {
+    $("generator-root").replaceChildren();
+    showPane("list");
+    (returnFocus || $("search")).focus();
+    returnFocus = null;
+  })
+);
