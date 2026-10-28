@@ -53,13 +53,20 @@ export function generatePhrase({ words = 7, separator = "-" } = {}) {
   return chosen.join(separator);
 }
 
-// Strength in bits: how many yes/no guesses an attacker would need, at best, to
-// cover every possibility (each extra bit doubles it). Assumes the attacker knows
-// the word list and the separator. The characters figure ignores where the special
-// characters sit, so it errs on the low side.
+// Strength in bits: each extra bit doubles the number of guesses an attacker needs.
+// Assumes the attacker knows the word list and the separator. The characters figure
+// ignores where the special characters sit, so it errs on the low side.
 export const phraseBits = (words) => words * Math.log2(WORDS.length);
 export const characterBits = (length, specialCount) =>
   specialCount * Math.log2(SPECIAL.length) + (length - specialCount) * Math.log2(LOWER.length + UPPER.length + DIGITS.length);
+
+// Turns bits into a level from 1 to 4 for the strength meter.
+export function strengthLevel(bits) {
+  if (bits < 40) return { level: 1, label: "Weak" };
+  if (bits < 60) return { level: 2, label: "Fair" };
+  if (bits < 80) return { level: 3, label: "Good" };
+  return { level: 4, label: "Strong" };
+}
 
 // ---- Screen ----
 
@@ -113,7 +120,14 @@ export function mountGenerator(root, { onUse } = {}) {
     autocorrect: "off",
   });
   output.addEventListener("focus", () => output.select());
-  const strength = el("p", { class: "help" });
+  const segments = [1, 2, 3, 4].map(() => el("span", { class: "meter-seg" }));
+  const strengthLabel = el("span", {});
+  const strength = el("div", { class: "meter", "data-level": "1" }, el("span", { class: "meter-bar", "aria-hidden": "true" }, ...segments), strengthLabel);
+  function showStrength(bits) {
+    const { level, label } = strengthLevel(bits);
+    strength.dataset.level = level;
+    strengthLabel.textContent = `Strength: ${label}`;
+  }
   const status = el("p", { class: "help", role: "status" });
 
   const phrase = () => modePhrase.checked;
@@ -136,14 +150,14 @@ export function mountGenerator(root, { onUse } = {}) {
     if (phrase()) {
       const count = fit(words, ...LIMITS.words, "The number of words");
       output.value = generatePhrase({ words: count, separator: separator.value });
-      strength.textContent = `About ${Math.floor(phraseBits(count))} bits of strength.`;
+      showStrength(phraseBits(count));
     } else {
       const total = fit(length, ...LIMITS.length, "The length");
       specialCount.disabled = !useSpecial.checked;
       specialCount.max = total - 3;
       const special = useSpecial.checked ? fit(specialCount, 1, total - 3, "The number of special characters") : 0;
       output.value = generateCharacters({ length: total, specialCount: special });
-      strength.textContent = `About ${Math.floor(characterBits(total, special))} bits of strength.`;
+      showStrength(characterBits(total, special));
     }
     status.textContent = message;
   }

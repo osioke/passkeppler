@@ -449,6 +449,15 @@ input.num { width: 6rem; }
 .gen-mode { margin-top: 0.5rem; }
 .gen-mode .check { margin-right: 1.25rem; }
 
+/* Strength meter: filled segments plus a word, so it never relies on colour alone. */
+.meter { display: flex; align-items: center; gap: 0.75rem; margin: 0.6rem 0 0; font-size: 0.9rem; color: var(--muted); }
+.meter-bar { display: flex; gap: 4px; flex: 0 0 8rem; }
+.meter-seg { flex: 1; height: 0.5rem; border-radius: 2px; background: var(--rule); }
+.meter[data-level="1"] .meter-seg:nth-child(-n+1) { background: var(--danger); }
+.meter[data-level="2"] .meter-seg:nth-child(-n+2) { background: var(--focus); }
+.meter[data-level="3"] .meter-seg:nth-child(-n+3),
+.meter[data-level="4"] .meter-seg:nth-child(-n+4) { background: var(--accent); }
+
 .gen-output {
   min-height: 3.5rem;
   margin-top: 0.15rem;
