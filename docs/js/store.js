@@ -109,6 +109,17 @@ export function putEntry(entryDoc) {
   return fb.setDoc(fb.doc(db, "users", uid, "entries", entryDoc.id), entryDoc);
 }
 
+// Saves many at once (Firestore allows up to 500 writes in one batch).
+export function putEntries(entryDocs) {
+  const batches = [];
+  for (let i = 0; i < entryDocs.length; i += 400) {
+    const batch = fb.writeBatch(db);
+    for (const entryDoc of entryDocs.slice(i, i + 400)) batch.set(fb.doc(db, "users", uid, "entries", entryDoc.id), entryDoc);
+    batches.push(batch.commit());
+  }
+  return Promise.all(batches);
+}
+
 export function removeEntry(id) {
   return fb.deleteDoc(fb.doc(db, "users", uid, "entries", id));
 }

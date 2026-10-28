@@ -5,6 +5,7 @@ import { encryptJSON, decryptJSON } from "./crypto.js";
 import * as store from "./store.js";
 import { el, copyText } from "./ui.js";
 import { mountGenerator } from "./generator.js";
+import { mountImport } from "./import-ui.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -50,6 +51,7 @@ export function closeVault() {
   $("custom-rows").replaceChildren();
   setGenPanel(false);
   $("generator-root").replaceChildren(); // a generated password shouldn't linger once the vault is locked
+  $("pane-import").replaceChildren(); // nor imported rows, which hold passwords
   notify("");
 }
 
@@ -111,10 +113,29 @@ async function persist(entry) {
   store.putEntry(stored).catch((err) => notify(store.describeError(err), true));
 }
 
+// Saves several new entries at once. Resolves when they are encrypted and on this device;
+// Firebase confirms in the background, and an error is shown if it refuses.
+async function saveMany(list, onProgress) {
+  const now = Date.now();
+  const added = [];
+  const stored = [];
+  for (const [i, item] of list.entries()) {
+    const entry = { ...normalise(item), id: crypto.randomUUID(), createdAt: now, updatedAt: now };
+    const blob = await encryptJSON(encKey, entry);
+    stored.push({ id: entry.id, schemaVersion: 1, updatedAt: now, ...blob });
+    added.push(entry);
+    onProgress(i + 1, list.length);
+  }
+  entries.push(...added);
+  renderList();
+  store.putEntries(stored).catch((err) => notify(store.describeError(err), true));
+  return added.length;
+}
+
 // ---- Panes ----
 
 function showPane(name) {
-  for (const pane of ["list", "detail", "edit", "generator"]) $("pane-" + pane).hidden = pane !== name;
+  for (const pane of ["list", "detail", "edit", "generator", "import"]) $("pane-" + pane).hidden = pane !== name;
   if (name === "detail") $("detail-title")?.focus();
   if (name === "edit") $("edit-title").focus();
   if (name === "generator") $("generator-title").focus();
@@ -472,6 +493,20 @@ $("open-generator").addEventListener("click", () => {
   returnFocus = $("open-generator");
   mountGenerator($("generator-root"));
   showPane("generator");
+});
+
+// ---- Import ----
+
+function closeImport() {
+  $("pane-import").replaceChildren();
+  showPane("list");
+  $("open-import").focus();
+}
+
+$("open-import").addEventListener("click", () => {
+  mountImport($("pane-import"), { close: closeImport, entries: () => entries, saveMany, notify }).start();
+  showPane("import");
+  $("import-title").focus();
 });
 
 document.querySelectorAll("[data-back]").forEach((button) =>

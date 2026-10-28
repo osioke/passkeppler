@@ -468,3 +468,15 @@ input.num { width: 6rem; }
   field-sizing: content;
   background: color-mix(in srgb, var(--ink) 5%, transparent);
 }
+
+/* ---- Import ---- */
+
+.map-list, .import-list { list-style: none; margin: 1rem 0 0; padding: 0; }
+.map-row, .import-row { padding: 0.75rem 0; border-bottom: 1px solid var(--rule); }
+.map-row label { margin-top: 0; }
+.map-row select { margin-top: 0.25rem; }
+.import-head { margin-bottom: 0.25rem; }
+.import-grid { display: grid; gap: 0.25rem; }
+.import-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0 1.5rem; margin-top: 0.5rem; }
+.import-tools select { flex: 1 1 10rem; width: auto; }
+input[type="file"] { padding: 0.6rem 0; }
