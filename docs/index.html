@@ -80,7 +80,11 @@
         <nav class="tools" aria-label="Vault tools">
           <button type="button" class="link" id="open-generator">Password generator</button>
           <button type="button" class="link" id="open-import">Import</button>
+          <button type="button" class="link" id="download-backup">Download backup</button>
+          <button type="button" class="link" id="open-restore">Restore</button>
+          <button type="button" class="link" id="open-settings">Settings</button>
         </nav>
+        <p id="backup-status" class="backup-status"></p>
         <p id="list-summary" class="muted"></p>
         <ul id="entry-list" class="entries"></ul>
       </div>
@@ -135,6 +139,21 @@
 
       <!-- Import -->
       <div id="pane-import" hidden></div>
+
+      <!-- Restore -->
+      <div id="pane-restore" hidden></div>
+
+      <!-- Settings -->
+      <div id="pane-settings" hidden>
+        <button type="button" class="link" data-back>Back to all entries</button>
+        <h3 id="settings-title" tabindex="-1">Settings</h3>
+        <form id="settings-form" novalidate>
+          <label for="s-days">Remind me to make a backup after this many days</label>
+          <input id="s-days" class="num" type="number" inputmode="numeric" min="1" max="365" step="1" aria-describedby="settings-error">
+          <p class="error" id="settings-error" role="alert"></p>
+          <div class="actions"><button type="submit">Save</button></div>
+        </form>
+      </div>
 
       <!-- Password generator -->
       <div id="pane-generator" hidden>

@@ -480,3 +480,10 @@ input.num { width: 6rem; }
 .import-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0 1.5rem; margin-top: 0.5rem; }
 .import-tools select { flex: 1 1 10rem; width: auto; }
 input[type="file"] { padding: 0.6rem 0; }
+
+/* ---- Backups ---- */
+
+.backup-status { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+.backup-status.is-overdue { color: var(--warn-ink); background: var(--warn-bg); border-left: 4px solid var(--focus); padding: 0.4rem 0.75rem; }
+.backup-status:empty { display: none; }
+#pane-restore h3, #pane-settings h3, #pane-import h3 { margin: 0.5rem 0 0.75rem; font-size: 1.35rem; line-height: 1.25; }

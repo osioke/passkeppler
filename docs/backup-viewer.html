@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>passkeppler backup</title>
+<style>
+  :root { --paper:#eef0ea; --ink:#17231f; --muted:#566660; --rule:#b9c4bc; --accent:#0e6b5e; --accent-ink:#fff; --danger:#a3261d; --focus:#e0a800;
+    --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace; --sans:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,sans-serif; }
+  @media (prefers-color-scheme: dark) { :root { --paper:#131a17; --ink:#e3e9e5; --muted:#94a39b; --rule:#3a4741; --accent:#5fc4b0; --accent-ink:#0b1411; --danger:#ff8f84; --focus:#f0c24a; } }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:1rem/1.55 var(--sans); }
+  main { max-width:40rem; margin:0 auto; padding:3rem 1rem 4rem; }
+  h1 { margin:0; font-size:2rem; letter-spacing:-0.03em; }
+  h2 { margin:1.5rem 0 0.5rem; font-size:1.25rem; overflow-wrap:anywhere; }
+  p { margin:0 0 1rem; }
+  .muted { color:var(--muted); }
+  .small { font-size:0.9rem; }
+  section { margin-top:2rem; padding-top:1.25rem; border-top:2px solid var(--ink); }
+  label { display:block; margin-top:1.25rem; color:var(--muted); font-size:0.9rem; }
+  input[type=password], input[type=text], input[type=search] { display:block; width:100%; padding:0.5rem 0; font:inherit; color:var(--ink); background:transparent; border:0; border-bottom:1.5px solid var(--rule); border-radius:0; }
+  input:focus { outline:none; border-color:var(--accent); box-shadow:0 2px 0 0 var(--accent); }
+  .check { display:inline-flex; align-items:center; gap:0.4rem; margin-top:0.5rem; min-height:2.75rem; }
+  .check input { width:1.1rem; height:1.1rem; accent-color:var(--accent); }
+  button { font:inherit; cursor:pointer; min-height:2.75rem; }
+  button.solid { padding:0.6rem 1.25rem; color:var(--accent-ink); font-weight:600; background:var(--accent); border:0; border-radius:4px; margin-top:1.25rem; }
+  button.solid:disabled { opacity:0.6; cursor:progress; }
+  button.link { padding:0; color:var(--accent); background:none; border:0; text-decoration:underline; text-underline-offset:3px; }
+  button.row-btn { display:block; width:100%; padding:0.7rem 0; color:var(--ink); text-align:left; background:none; border:0; border-bottom:1.5px solid var(--rule); }
+  button.row-btn:hover { color:var(--accent); }
+  button:focus-visible, summary:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
+  .title { display:block; font-weight:600; overflow-wrap:anywhere; }
+  .sub { display:block; color:var(--muted); font-size:0.9rem; overflow-wrap:anywhere; }
+  ul { margin:0; padding:0; list-style:none; }
+  .list li:first-child button { border-top:1.5px solid var(--rule); }
+  .error { color:var(--danger); margin:1rem 0 0; }
+  .error:empty { display:none; }
+  .notice { color:var(--accent); min-height:1.5em; margin:0.5rem 0; }
+  dl { margin:0; }
+  .row { padding:0.75rem 0; border-bottom:1.5px solid var(--rule); }
+  .row:first-child { border-top:1.5px solid var(--rule); }
+  dt { color:var(--muted); font-size:0.9rem; }
+  dd { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:0 1rem; margin:0; }
+  dd .value { overflow-wrap:anywhere; white-space:pre-wrap; }
+  .secret { font-family:var(--mono); letter-spacing:0.05em; }
+  .actions { display:inline-flex; gap:1rem; margin-left:auto; }
+  .codes li { padding:0.4rem 0; font-family:var(--mono); }
+  .codes li.used { color:var(--muted); text-decoration:line-through; }
+  pre { margin:0.5rem 0; padding:0.75rem; overflow-x:auto; font:0.85rem/1.5 var(--mono); background:rgba(127,127,127,0.12); border-radius:4px; }
+  summary { cursor:pointer; min-height:2.75rem; display:flex; align-items:center; }
+  .visually-hidden { position:absolute; width:1px; height:1px; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <h1>passkeppler backup</h1>
+  <p class="muted">A read-only copy of the vault. It works offline, and nothing you type here is sent anywhere.</p>
+
+  <dl id="about"></dl>
+  <p id="notice" class="notice" role="status"></p>
+
+  <section id="locked">
+    <h2>Unlock this backup</h2>
+    <form id="unlock-form" novalidate>
+      <p class="muted small">Use the master password you had when this backup was made.</p>
+      <label for="password">Master password</label>
+      <input id="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" aria-describedby="unlock-error">
+      <label class="check"><input type="checkbox" id="show-password"> Show password</label>
+      <p class="error" id="unlock-error" role="alert"></p>
+      <button class="solid" type="submit" id="unlock-button">Unlock</button>
+    </form>
+  </section>
+
+  <section id="vault" hidden>
+    <div id="pane-list">
+      <label for="search" class="visually-hidden">Search entries</label>
+      <input id="search" type="search" placeholder="Search entries" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <p id="summary" class="muted small"></p>
+      <ul id="list" class="list"></ul>
+    </div>
+    <div id="pane-detail" hidden></div>
+  </section>
+
+  <details id="config-box" hidden>
+    <summary>Firebase config used by this vault</summary>
+    <pre id="config"></pre>
+    <button class="link" type="button" id="copy-config">Copy config</button>
+  </details>
+
+  <script id="payload" type="application/json">__PAYLOAD__</script>
+</main>
+
+<script type="module">
+/*__CRYPTO__*/
+
+// ---- Viewer ----
+const $ = (id) => document.getElementById(id);
+const payload = JSON.parse($("payload").textContent);
+let entries = [];
+let noticeTimer;
+
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === false || value == null) continue;
+    if (key === "class") node.className = value;
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value === true ? "" : value);
+  }
+  for (const child of children.flat()) if (child != null && child !== false) node.append(child);
+  return node;
+}
+
+const fmt = (time) => (time ? new Date(time).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "unknown");
+
+function about() {
+  const rows = [
+    ["Made on", fmt(payload.createdAt)],
+    ["Account", payload.email],
+    ["Entries", String(payload.entryCount)],
+    ["Latest change in the vault", fmt(payload.latestChange)],
+  ];
+  $("about").replaceChildren(...rows.map(([label, value]) => el("div", { class: "row" }, el("dt", {}, label), el("dd", {}, el("span", { class: "value" }, value)))));
+}
+
+function notify(message) {
+  clearTimeout(noticeTimer);
+  $("notice").textContent = message;
+  if (message) noticeTimer = setTimeout(() => ($("notice").textContent = ""), 3000);
+}
+
+async function copy(text, what) {
+  try {
+    await navigator.clipboard.writeText(text);
+    notify(`Copied ${what}.`);
+  } catch {
+    notify("Couldn't copy. Select the text and copy it yourself.");
+  }
+}
+
+$("show-password").addEventListener("change", (e) => ($("password").type = e.target.checked ? "text" : "password"));
+
+$("unlock-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  $("unlock-error").textContent = "";
+  const password = $("password").value;
+  if (!password) {
+    $("unlock-error").textContent = "Enter your master password.";
+    $("password").focus();
+    return;
+  }
+  $("unlock-button").disabled = true;
+  $("unlock-button").textContent = "Unlocking…";
+  try {
+    const { encKey } = await deriveKeys(payload.email, password);
+    const data = await decryptJSON(encKey, { iv: payload.iv, ct: payload.ct });
+    entries = data.entries || [];
+    $("password").value = "";
+    $("locked").hidden = true;
+    $("vault").hidden = false;
+    renderList();
+    $("search").focus();
+  } catch {
+    $("unlock-error").textContent = "That master password doesn't open this backup, or the file has been changed.";
+    $("password").focus();
+  } finally {
+    $("unlock-button").disabled = false;
+    $("unlock-button").textContent = "Unlock";
+  }
+});
+
+function renderList() {
+  const query = $("search").value.trim().toLowerCase();
+  const words = query.split(/\s+/).filter(Boolean);
+  const shown = entries
+    .filter((e) => {
+      const hay = [e.title, e.url, e.username, e.email, e.notes].join("\n").toLowerCase();
+      return words.every((w) => hay.includes(w));
+    })
+    .sort((a, b) => (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" }));
+  $("list").replaceChildren(
+    ...shown.map((e) =>
+      el("li", {}, el("button", { type: "button", class: "row-btn", onclick: () => openDetail(e) },
+        el("span", { class: "title" }, e.title || "Untitled"),
+        e.username || e.email ? el("span", { class: "sub" }, e.username || e.email) : null))
+    )
+  );
+  $("summary").textContent = !entries.length ? "This backup has no entries." : !shown.length ? `Nothing matches "${$("search").value.trim()}".` : query ? `${shown.length} of ${entries.length} entries` : `${entries.length} entries`;
+}
+$("search").addEventListener("input", renderList);
+
+function secret(text, what) {
+  const value = el("span", { class: "value secret" }, "••••••••");
+  let shown = false;
+  const toggle = el("button", { type: "button", class: "link", "aria-label": `Show ${what}` }, "Show");
+  toggle.addEventListener("click", () => {
+    shown = !shown;
+    value.textContent = shown ? text : "••••••••";
+    toggle.textContent = shown ? "Hide" : "Show";
+    toggle.setAttribute("aria-label", `${shown ? "Hide" : "Show"} ${what}`);
+  });
+  return [value, el("span", { class: "actions" }, toggle, el("button", { type: "button", class: "link", "aria-label": `Copy ${what}`, onclick: () => copy(text, what) }, "Copy"))];
+}
+
+function plain(text, what) {
+  return [el("span", { class: "value" }, text), el("span", { class: "actions" }, el("button", { type: "button", class: "link", "aria-label": `Copy ${what}`, onclick: () => copy(text, what) }, "Copy"))];
+}
+
+function openDetail(e) {
+  const rows = [];
+  const add = (label, ...content) => rows.push(el("div", { class: "row" }, el("dt", {}, label), el("dd", {}, ...content)));
+  if (e.url) add("Website", ...plain(e.url, "website"));
+  if (e.username) add("Username", ...plain(e.username, "username"));
+  if (e.email) add("Email", ...plain(e.email, "email"));
+  if (e.password) add("Password", ...secret(e.password, "password"));
+  if (e.notes) add("Notes", el("span", { class: "value" }, e.notes));
+  const lines = (e.backupCodes || "").split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lines.length) {
+    const unused = lines.filter((l) => !l.startsWith("~"));
+    add("Backup codes", el("div", { style: "width:100%" },
+      el("ul", { class: "codes" }, lines.map((l) => {
+        const used = l.startsWith("~");
+        return el("li", { class: used ? "used" : "" }, used ? l.slice(1).trim() : l, used ? el("span", { class: "visually-hidden" }, " (used)") : null);
+      })),
+      unused.length ? el("button", { type: "button", class: "link", onclick: () => copy(unused.join("\n"), "unused codes") }, "Copy unused codes") : null));
+  }
+  for (const f of e.customFields || []) add(f.label || "Field", ...(f.hidden ? secret(f.value || "", (f.label || "field").toLowerCase()) : plain(f.value || "", (f.label || "field").toLowerCase())));
+
+  $("pane-detail").replaceChildren(
+    el("button", { type: "button", class: "link", onclick: () => { $("pane-detail").hidden = true; $("pane-list").hidden = false; $("search").focus(); } }, "Back to all entries"),
+    el("h2", { id: "detail-title", tabindex: "-1" }, e.title || "Untitled"),
+    rows.length ? el("dl", {}, rows) : el("p", { class: "muted" }, "This entry has no details."),
+    el("p", { class: "muted small" }, "Last changed " + fmt(e.updatedAt))
+  );
+  $("pane-list").hidden = true;
+  $("pane-detail").hidden = false;
+  $("detail-title").focus();
+}
+
+if (payload.firebaseConfig) {
+  $("config").textContent = JSON.stringify(payload.firebaseConfig, null, 2);
+  $("config-box").hidden = false;
+  $("copy-config").addEventListener("click", () => copy(JSON.stringify(payload.firebaseConfig, null, 2), "config"));
+}
+about();
+$("password").focus();
+</script>
+</body>
+</html>

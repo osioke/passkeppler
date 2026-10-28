@@ -6,6 +6,8 @@ import * as store from "./store.js";
 import { el, copyText } from "./ui.js";
 import { mountGenerator } from "./generator.js";
 import { mountImport } from "./import-ui.js";
+import { downloadBackup, mountRestore } from "./backup-ui.js";
+import { backupStatus, getReminderDays, setReminderDays } from "./prefs.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -52,6 +54,8 @@ export function closeVault() {
   setGenPanel(false);
   $("generator-root").replaceChildren(); // a generated password shouldn't linger once the vault is locked
   $("pane-import").replaceChildren(); // nor imported rows, which hold passwords
+  $("pane-restore").replaceChildren();
+  $("backup-status").textContent = "";
   notify("");
 }
 
@@ -115,30 +119,37 @@ async function persist(entry) {
 
 // Saves several new entries at once. Resolves when they are encrypted and on this device;
 // Firebase confirms in the background, and an error is shown if it refuses.
-async function saveMany(list, onProgress) {
+// With keepTime (restoring a backup), entries keep their own id and dates, and one that
+// is already here is replaced instead of added.
+async function saveMany(list, onProgress, { keepTime = false } = {}) {
   const now = Date.now();
-  const added = [];
+  const saved = [];
   const stored = [];
   for (const [i, item] of list.entries()) {
-    const entry = { ...normalise(item), id: crypto.randomUUID(), createdAt: now, updatedAt: now };
+    const entry = keepTime ? normalise(item) : { ...normalise(item), id: crypto.randomUUID(), createdAt: now, updatedAt: now };
     const blob = await encryptJSON(encKey, entry);
-    stored.push({ id: entry.id, schemaVersion: 1, updatedAt: now, ...blob });
-    added.push(entry);
+    stored.push({ id: entry.id, schemaVersion: 1, updatedAt: entry.updatedAt, ...blob });
+    saved.push(entry);
     onProgress(i + 1, list.length);
   }
-  entries.push(...added);
+  for (const entry of saved) {
+    const index = entries.findIndex((e) => e.id === entry.id);
+    if (index >= 0) entries[index] = entry;
+    else entries.push(entry);
+  }
   renderList();
   store.putEntries(stored).catch((err) => notify(store.describeError(err), true));
-  return added.length;
+  return saved.length;
 }
 
 // ---- Panes ----
 
 function showPane(name) {
-  for (const pane of ["list", "detail", "edit", "generator", "import"]) $("pane-" + pane).hidden = pane !== name;
+  for (const pane of ["list", "detail", "edit", "generator", "import", "restore", "settings"]) $("pane-" + pane).hidden = pane !== name;
   if (name === "detail") $("detail-title")?.focus();
   if (name === "edit") $("edit-title").focus();
   if (name === "generator") $("generator-title").focus();
+  if (name === "settings") $("settings-title").focus();
 }
 
 function notify(message, isError = false) {
@@ -205,6 +216,14 @@ function renderList() {
     summary += `${summary ? " " : ""}${unreadable} couldn't be opened with this master password.`;
   }
   $("list-summary").textContent = summary;
+  showBackupStatus();
+}
+
+function showBackupStatus() {
+  const { text, overdue } = backupStatus(entries.length);
+  const line = $("backup-status");
+  line.textContent = text;
+  line.classList.toggle("is-overdue", overdue);
 }
 
 $("search").addEventListener("input", renderList);
@@ -507,6 +526,53 @@ $("open-import").addEventListener("click", () => {
   mountImport($("pane-import"), { close: closeImport, entries: () => entries, saveMany, notify }).start();
   showPane("import");
   $("import-title").focus();
+});
+
+// ---- Backup, restore, settings ----
+
+$("download-backup").addEventListener("click", async () => {
+  if (!entries.length) {
+    notify("There's nothing to back up yet.", true);
+    return;
+  }
+  const button = $("download-backup");
+  button.disabled = true;
+  if (await downloadBackup({ entries: () => entries, key: () => encKey, email: () => $("who").textContent, config: store.loadConfig, notify })) showBackupStatus();
+  button.disabled = false;
+});
+
+function closeRestore() {
+  $("pane-restore").replaceChildren();
+  showPane("list");
+  $("open-restore").focus();
+}
+
+$("open-restore").addEventListener("click", () => {
+  mountRestore($("pane-restore"), { close: closeRestore, key: () => encKey, entries: () => entries, saveMany, notify }).start();
+  showPane("restore");
+  $("restore-title").focus();
+});
+
+$("open-settings").addEventListener("click", () => {
+  returnFocus = $("open-settings");
+  $("s-days").value = getReminderDays();
+  $("settings-error").textContent = "";
+  showPane("settings");
+});
+
+$("settings-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const days = Number($("s-days").value);
+  if (!Number.isInteger(days) || days < 1 || days > 365) {
+    $("settings-error").textContent = "Enter a whole number of days from 1 to 365.";
+    $("s-days").focus();
+    return;
+  }
+  setReminderDays(days);
+  showBackupStatus();
+  showPane("list");
+  $("open-settings").focus();
+  notify("Saved.");
 });
 
 document.querySelectorAll("[data-back]").forEach((button) =>
