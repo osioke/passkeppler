@@ -46,12 +46,20 @@ export function generateCharacters({ length = 20, specialCount = 0 } = {}) {
   return shuffle(chars).join("");
 }
 
-export function generatePhrase({ words = 6, separator = "-" } = {}) {
+export function generatePhrase({ words = 7, separator = "-" } = {}) {
   words = clamp(words, ...LIMITS.words);
   const chosen = [];
   for (let i = 0; i < words; i++) chosen.push(WORDS[randomInt(WORDS.length)]);
   return chosen.join(separator);
 }
+
+// Strength in bits: how many yes/no guesses an attacker would need, at best, to
+// cover every possibility (each extra bit doubles it). Assumes the attacker knows
+// the word list and the separator. The characters figure ignores where the special
+// characters sit, so it errs on the low side.
+export const phraseBits = (words) => words * Math.log2(WORDS.length);
+export const characterBits = (length, specialCount) =>
+  specialCount * Math.log2(SPECIAL.length) + (length - specialCount) * Math.log2(LOWER.length + UPPER.length + DIGITS.length);
 
 // ---- Screen ----
 
@@ -68,7 +76,7 @@ export function mountGenerator(root, { onUse } = {}) {
   const length = el("input", { type: "number", id: id("length"), inputmode: "numeric", min: LIMITS.length[0], max: LIMITS.length[1], step: 1, value: 20, class: "num" });
   const useSpecial = el("input", { type: "checkbox", id: id("special"), checked: true });
   const specialCount = el("input", { type: "number", id: id("special-count"), inputmode: "numeric", min: 1, step: 1, value: 4, class: "num" });
-  const words = el("input", { type: "number", id: id("words"), inputmode: "numeric", min: LIMITS.words[0], max: LIMITS.words[1], step: 1, value: 6, class: "num" });
+  const words = el("input", { type: "number", id: id("words"), inputmode: "numeric", min: LIMITS.words[0], max: LIMITS.words[1], step: 1, value: 7, class: "num" });
   const separator = el(
     "select",
     { id: id("separator") },
@@ -105,6 +113,7 @@ export function mountGenerator(root, { onUse } = {}) {
     autocorrect: "off",
   });
   output.addEventListener("focus", () => output.select());
+  const strength = el("p", { class: "help" });
   const status = el("p", { class: "help", role: "status" });
 
   const phrase = () => modePhrase.checked;
@@ -125,14 +134,16 @@ export function mountGenerator(root, { onUse } = {}) {
     charsBox.hidden = phrase();
     phraseBox.hidden = !phrase();
     if (phrase()) {
-      fit(words, ...LIMITS.words, "The number of words");
-      output.value = generatePhrase({ words: words.value, separator: separator.value });
+      const count = fit(words, ...LIMITS.words, "The number of words");
+      output.value = generatePhrase({ words: count, separator: separator.value });
+      strength.textContent = `About ${Math.floor(phraseBits(count))} bits of strength.`;
     } else {
       const total = fit(length, ...LIMITS.length, "The length");
       specialCount.disabled = !useSpecial.checked;
       specialCount.max = total - 3;
       const special = useSpecial.checked ? fit(specialCount, 1, total - 3, "The number of special characters") : 0;
       output.value = generateCharacters({ length: total, specialCount: special });
+      strength.textContent = `About ${Math.floor(characterBits(total, special))} bits of strength.`;
     }
     status.textContent = message;
   }
@@ -176,6 +187,7 @@ export function mountGenerator(root, { onUse } = {}) {
     note,
     el("label", { for: id("output") }, "Password"),
     output,
+    strength,
     el("div", { class: "actions" }, useButton, again, copy),
     status
   );

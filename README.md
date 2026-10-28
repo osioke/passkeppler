@@ -97,6 +97,14 @@ You are your own safety net, so make backups.
 
 ---
 
+## About word phrases
+
+The generator's word phrases pick words at random from a list of 7,772 words, so each word adds about 12.9 bits of strength and a 7-word phrase has about 90 bits. The list is public on purpose: a phrase is safe because of how many combinations are possible, not because the list is secret.
+
+The word list is the [EFF large wordlist](https://www.eff.org/dice) by the Electronic Frontier Foundation, used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Four words containing a hyphen were removed.
+
+---
+
 ## For developers
 
 - **Plain HTML, CSS and JavaScript.** No framework and no build step for the web app.
