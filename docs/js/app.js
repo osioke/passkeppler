@@ -1,7 +1,7 @@
 import { deriveKeys, decryptJSON } from "./crypto.js";
 import * as store from "./store.js";
 import { setupRevealToggles, hideAllPasswords } from "./ui.js";
-import { openVault, closeVault, tell } from "./vault.js";
+import { openVault, closeVault, tell, setConnection } from "./vault.js";
 import * as keep from "./session.js";
 
 const $ = (id) => document.getElementById(id);
@@ -141,12 +141,17 @@ async function checkAgainstThisDevice(email, encKey, original) {
 }
 
 function workOffline(email, authPassword) {
+  setConnection(false);
   tell("You're offline. This is the copy saved on this device, and changes will be sent once you're back online.");
-  store.syncWhenOnline(email, authPassword, () => tell("Back online. Your changes are syncing."));
+  store.syncWhenOnline(email, authPassword, () => {
+    setConnection(true);
+    tell("Back online. Your changes are syncing.");
+  });
 }
 
 function enter(email, encKey) {
   session = { email, encKey };
+  setConnection(true);
   openVault(email, encKey);
   show("vault");
 }

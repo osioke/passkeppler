@@ -56,6 +56,7 @@ export function closeVault() {
   $("pane-import").replaceChildren(); // nor imported rows, which hold passwords
   $("pane-restore").replaceChildren();
   $("backup-status").textContent = "";
+  $("count").textContent = "";
   notify("");
 }
 
@@ -155,6 +156,13 @@ function showPane(name) {
 // For app.js, which has news the vault screen should show.
 export function tell(message, isError = false) {
   notify(message, isError);
+}
+
+// For app.js: whether this device can reach Firebase right now.
+export function setConnection(online) {
+  const label = $("connection");
+  label.textContent = online ? "Online" : "Offline";
+  label.classList.toggle("is-offline", !online);
 }
 
 function notify(message, isError = false) {
@@ -261,11 +269,12 @@ function renderList() {
   if (!entries.length) summary = unreadable ? "" : "No entries yet. Choose New entry to add your first one.";
   else if (!shown.length) summary = `Nothing matches "${query}".`;
   else if (query) summary = `${shown.length} of ${entries.length} entries`;
-  else summary = entries.length === 1 ? "1 entry" : `${entries.length} entries`;
+  else summary = "";
   if (unreadable) {
     summary += `${summary ? " " : ""}${unreadable} couldn't be opened with this master password.`;
   }
   $("list-summary").textContent = summary;
+  $("count").textContent = entries.length === 1 ? "1 entry" : `${entries.length} entries`;
   showBackupStatus();
 }
 
