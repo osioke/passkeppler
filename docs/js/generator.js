@@ -174,12 +174,12 @@ export function mountGenerator(root, { onUse } = {}) {
     }
   });
 
-  const again = el("button", { type: "button", class: "link", onclick: () => make() }, "Make another");
+  const again = el("button", { type: "button", class: "secondary", onclick: () => make() }, "Make another");
   const copy = el(
     "button",
     {
       type: "button",
-      class: "link",
+      class: onUse ? "secondary" : "",
       onclick: async () => {
         status.textContent = (await copyText(output.value)) ? "Copied." : "Couldn't copy. Select the password and copy it yourself.";
       },

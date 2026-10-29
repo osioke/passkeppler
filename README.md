@@ -81,7 +81,7 @@ The extension isn't published in a store, so you build it once and load it yours
 4. Click **Load unpacked** and choose the `extension/dist` folder.
 5. Open the extension, paste the same Firebase config, and sign in with the same email and master password.
 
-Once unlocked, the extension stays unlocked until you press **Lock** or close the browser. To fill in a login, open the site, open the extension, choose the entry and press **Autofill on this page**. Entries for the site you're on are listed first. Choosing a file closes a popup, so **Import** and **Restore** are in a full tab: press **Open in a tab**. After you change the web app's code, run `node build.mjs` again and press the refresh arrow on the extensions page.
+Once unlocked, the extension stays unlocked until you press **Lock** or close the browser. To fill in a login, open the site, open the extension, choose the entry and press **Autofill on this page**. Entries for the site you're on are listed first. Choosing a file closes a popup, so **Import** and **Restore** are in a full tab: press **Open in tab**. After you change the web app's code, run `node build.mjs` again and press the refresh arrow on the extensions page.
 
 ### 6. Bring in your old passwords (optional)
 
@@ -93,7 +93,7 @@ Export from 1Password as CSV or XLSX, then choose **Import** in the app. Check t
 
 You are your own safety net, so make backups.
 
-- Use **Download backup** to save a single `.html` file. It contains your whole vault, scrambled with your master password, plus a small viewer.
+- Use **Backup** to save a single `.html` file. It contains your whole vault, scrambled with your master password, plus a small viewer.
 - Double-click it to open in any browser, with no internet, no Firebase and no app needed. Type your master password and read your entries.
 - Keep copies in more than one place, such as your computer, an external drive, and one or two online drives.
 - The app reminds you when your last backup is more than 14 days old.

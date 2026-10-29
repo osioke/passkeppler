@@ -12,8 +12,11 @@
 <body>
   <main class="page">
     <header class="brand">
-      <h1>passkeppler</h1>
-      <p>A broke man's alternative to password keeping.</p>
+      <img src="favicon.svg" alt="" width="40" height="40">
+      <div>
+        <h1>passkeppler</h1>
+        <p>A broke man's alternative to password keeping.</p>
+      </div>
     </header>
 
     <!-- 1. First run: connect to your own Firebase project -->
@@ -63,7 +66,7 @@
     <!-- 3. Unlocked: the vault -->
     <section id="view-vault" aria-labelledby="vault-title" hidden>
       <div class="vault-head">
-        <h2 id="vault-title">Your vault</h2>
+        <h2 id="vault-title" class="visually-hidden">Your vault</h2>
         <div class="vault-who">
           <span id="who" class="muted"></span>
           <button type="button" class="link" id="lock">Lock</button>
@@ -76,19 +79,22 @@
       <div id="pane-list">
         <div class="list-tools">
           <label for="search" class="visually-hidden">Search entries</label>
-          <input id="search" type="search" inputmode="search" placeholder="Search title, website, username or email" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
-          <button type="button" id="new-entry">New entry</button>
+          <div class="search">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+            <input id="search" type="search" inputmode="search" placeholder="Search" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search">
+          </div>
+          <button type="button" id="new-entry"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New</span></button>
         </div>
         <nav class="tools" aria-label="Vault tools">
-          <button type="button" class="link" id="open-generator">Password generator</button>
-          <button type="button" class="link" id="open-import">Import</button>
-          <button type="button" class="link" id="download-backup">Download backup</button>
-          <button type="button" class="link" id="open-restore">Restore</button>
-          <button type="button" class="link" id="open-settings">Settings</button>
+          <button type="button" class="tool" id="open-generator" aria-label="Password generator"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/></svg><span>Generator</span></button>
+          <button type="button" class="tool" id="open-import"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg><span>Import</span></button>
+          <button type="button" class="tool" id="download-backup" aria-label="Download backup"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span>Backup</span></button>
+          <button type="button" class="tool" id="open-restore"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/></svg><span>Restore</span></button>
+          <button type="button" class="tool" id="open-settings"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Settings</span></button>
         </nav>
         <p id="backup-status" class="backup-status"></p>
         <p id="list-summary" class="muted"></p>
-        <ul id="entry-list" class="entries"></ul>
+        <div id="entry-list" class="entries"></div>
       </div>
 
       <!-- One entry -->
@@ -147,7 +153,7 @@
 
       <!-- Settings -->
       <div id="pane-settings" hidden>
-        <button type="button" class="link" data-back>Back to all entries</button>
+        <button type="button" class="link back" data-back>Back to all entries</button>
         <h3 id="settings-title" tabindex="-1">Settings</h3>
         <form id="settings-form" novalidate>
           <label for="s-days">Remind me to make a backup after this many days</label>
@@ -159,7 +165,7 @@
 
       <!-- Password generator -->
       <div id="pane-generator" hidden>
-        <button type="button" class="link" data-back>Back to all entries</button>
+        <button type="button" class="link back" data-back>Back to all entries</button>
         <h3 id="generator-title" tabindex="-1">Password generator</h3>
         <div id="generator-root"></div>
       </div>

@@ -13,7 +13,7 @@ export function mountImport(root, ctx) {
   let sortBy = "file";
 
   const back = (label = "Back to all entries", action = ctx.close) =>
-    el("button", { type: "button", class: "link", onclick: action }, label);
+    el("button", { type: "button", class: "link back", onclick: action }, label);
 
   function finishRender(...children) {
     root.replaceChildren(...children);

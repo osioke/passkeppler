@@ -16,6 +16,21 @@ export function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+// Small line icons (24x24, drawn with the text colour). They only decorate: the words next to
+// them say what a button does, so they are hidden from screen readers.
+const ICONS = {
+  tab: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+};
+
+export function icon(name) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "icon");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = ICONS[name];
+  return svg;
+}
+
 // ---- Show / hide for password-type fields ----
 // Any <input data-reveal> gets a Show/Hide button at its end.
 

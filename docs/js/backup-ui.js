@@ -52,7 +52,7 @@ export function mountRestore(root, ctx) {
       }
     });
     finishRender(
-      el("button", { type: "button", class: "link", onclick: ctx.close }, "Back to all entries"),
+      el("button", { type: "button", class: "link back", onclick: ctx.close }, "Back to all entries"),
       el("h3", { id: "restore-title", tabindex: "-1" }, "Restore from a backup"),
       el("p", {}, "Choose a passkeppler backup file. Restoring adds entries that are missing and brings in the backup's copy of an entry only when it's newer than yours. It never deletes anything."),
       el("label", { for: "restore-file" }, "Backup file"),

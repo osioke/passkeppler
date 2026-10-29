@@ -204,28 +204,58 @@ function onThisSite(entry) {
   return page.host === host || page.host.endsWith("." + host);
 }
 
+// A round letter badge, one soft colour per entry (the same title always gets the same colour).
+function avatar(entry) {
+  const name = entry.title || entry.url || "?";
+  let hash = 0;
+  for (const ch of name.toLowerCase()) hash = (hash * 31 + ch.codePointAt(0)) >>> 0;
+  const badge = el("span", { class: "avatar", "aria-hidden": "true" }, (name.match(/[\p{L}\p{N}]/u) || ["#"])[0].toUpperCase());
+  badge.style.setProperty("--h", String(Math.round((hash % 360) / 30) * 30));
+  return badge;
+}
+
+function entryRow(entry) {
+  const sub = entry.username || entry.email || (entry.url ? hostOf(entry.url) : "");
+  return el(
+    "li",
+    {},
+    el(
+      "button",
+      { type: "button", class: "plain entry", onclick: () => openDetail(entry.id) },
+      avatar(entry),
+      el("span", { class: "entry-text" }, el("span", { class: "entry-title" }, entry.title || "Untitled"), sub ? el("span", { class: "entry-sub" }, sub) : null)
+    )
+  );
+}
+
+function group(label, items) {
+  return el("div", { class: "group" }, el("h3", { class: "group-label" }, label), el("ul", { class: "group-list" }, items.map(entryRow)));
+}
+
 function renderList() {
   const query = $("search").value.trim();
-  const shown = entries
-    .filter((entry) => matches(entry, query))
-    .sort((a, b) => Number(onThisSite(b)) - Number(onThisSite(a)) || a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+  const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+  const shown = entries.filter((entry) => matches(entry, query)).sort(byTitle);
 
-  const list = $("entry-list");
-  list.replaceChildren(
-    ...shown.map((entry) => {
-      const sub = [onThisSite(entry) ? "This site" : "", entry.username || entry.email || (entry.url ? hostOf(entry.url) : "")].filter(Boolean).join(" · ");
-      return el(
-        "li",
-        {},
-        el(
-          "button",
-          { type: "button", class: "plain entry", onclick: () => openDetail(entry.id) },
-          el("span", { class: "entry-title" }, entry.title || "Untitled"),
-          sub ? el("span", { class: "entry-sub" }, sub) : null
-        )
-      );
-    })
-  );
+  // Searching shows one plain list. Otherwise entries are grouped, so a long vault reads in small pieces.
+  const groups = [];
+  if (query) {
+    if (shown.length) groups.push(group("Results", shown));
+  } else {
+    const here = shown.filter(onThisSite);
+    if (here.length) groups.push(group("On this site", here));
+    const letters = new Map();
+    for (const entry of shown) {
+      if (here.includes(entry)) continue;
+      const first = (entry.title.match(/[\p{L}]/u) || ["#"])[0].toUpperCase();
+      const key = first.normalize("NFD")[0].match(/[A-Z]/) ? first.normalize("NFD")[0] : "#";
+      if (!letters.has(key)) letters.set(key, []);
+      letters.get(key).push(entry);
+    }
+    const keys = [...letters.keys()].sort((a, b) => (a === "#") - (b === "#") || a.localeCompare(b));
+    for (const key of keys) groups.push(group(key, letters.get(key)));
+  }
+  $("entry-list").replaceChildren(...groups);
 
   let summary;
   if (!entries.length) summary = unreadable ? "" : "No entries yet. Choose New entry to add your first one.";
@@ -376,15 +406,20 @@ function renderDetail() {
   }
 
   pane.replaceChildren(
-    el("button", { type: "button", class: "link", onclick: () => { currentId = null; showPane("list"); $("search").focus(); } }, "Back to all entries"),
-    el("h3", { id: "detail-title", tabindex: "-1" }, entry.title || "Untitled"),
+    el("button", { type: "button", class: "link back", onclick: () => { currentId = null; showPane("list"); $("search").focus(); } }, "Back to all entries"),
+    el(
+      "div",
+      { class: "detail-head" },
+      avatar(entry),
+      el("div", {}, el("h3", { id: "detail-title", tabindex: "-1" }, entry.title || "Untitled"), entry.url ? el("p", { class: "detail-sub" }, hostOf(entry.url)) : null)
+    ),
     rows.length ? el("dl", { class: "rows" }, rows) : el("p", { class: "muted" }, "This entry has no details yet."),
     el("p", { class: "muted small" }, "Last changed " + new Date(entry.updatedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })),
     el(
       "div",
       { class: "actions" },
       page ? el("button", { type: "button", onclick: () => autofill(entry) }, "Autofill on this page") : null,
-      el("button", { type: "button", onclick: () => openEditor(entry) }, "Edit"),
+      el("button", { type: "button", class: "secondary", onclick: () => openEditor(entry) }, "Edit"),
       el("button", { type: "button", class: "link danger", onclick: () => removeEntry(entry) }, "Delete")
     )
   );

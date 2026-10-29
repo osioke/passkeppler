@@ -2,6 +2,7 @@
 // In the popup: tell the vault which site is open, and let it fill in the login form.
 
 import { setPage } from "./js/vault.js";
+import { icon } from "./js/ui.js";
 
 const popup = new URLSearchParams(location.search).get("view") === "popup";
 document.body.classList.toggle("is-popup", popup);
@@ -53,8 +54,9 @@ async function start() {
   // "Open in a tab" gives Import and Restore room to work, and a full-size page.
   const tabLink = document.createElement("button");
   tabLink.type = "button";
-  tabLink.className = "link";
-  tabLink.textContent = "Open in a tab";
+  tabLink.className = "tool";
+  tabLink.append(icon("tab"), Object.assign(document.createElement("span"), { textContent: "Open in tab" }));
+  tabLink.setAttribute("aria-label", "Open in a tab");
   tabLink.addEventListener("click", async () => {
     await chrome.tabs.create({ url: chrome.runtime.getURL("popup.html") });
     window.close();
