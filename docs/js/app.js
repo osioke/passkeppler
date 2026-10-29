@@ -1,7 +1,7 @@
-import { deriveKeys } from "./crypto.js";
+import { deriveKeys, decryptJSON } from "./crypto.js";
 import * as store from "./store.js";
 import { setupRevealToggles, hideAllPasswords } from "./ui.js";
-import { openVault, closeVault } from "./vault.js";
+import { openVault, closeVault, tell } from "./vault.js";
 import * as keep from "./session.js";
 
 const $ = (id) => document.getElementById(id);
@@ -101,8 +101,17 @@ $("auth-form").addEventListener("submit", async (event) => {
   try {
     const { authPassword, encKey } = await deriveKeys(email, password, undefined, keep.enabled);
     await store.connect(store.loadConfig());
+    let offline = false;
     if (mode === "create") await store.signUp(email, authPassword);
-    else await store.signIn(email, authPassword);
+    else {
+      try {
+        await store.signIn(email, authPassword);
+      } catch (err) {
+        if (!store.isOfflineError(err)) throw err;
+        await checkAgainstThisDevice(email, encKey, err);
+        offline = true;
+      }
+    }
 
     await keep.save({ email, authPassword, encKey });
     store.saveLastEmail(email);
@@ -110,12 +119,31 @@ $("auth-form").addEventListener("submit", async (event) => {
     $("confirm").value = "";
     hideAllPasswords();
     enter(email, encKey);
+    if (offline) workOffline(email, authPassword);
   } catch (err) {
     setError("auth-error", store.describeError(err));
   } finally {
     setBusy(false);
   }
 });
+
+// Firebase can't be reached. If this device holds a copy of the vault, the master password is
+// checked by opening one entry of it. Throws the original error if there is no copy to open,
+// or a wrong-password error if the entry won't open.
+async function checkAgainstThisDevice(email, encKey, original) {
+  const stored = await store.entriesOnThisDevice(email);
+  if (!stored) throw original;
+  try {
+    await decryptJSON(encKey, stored[0]);
+  } catch {
+    throw Object.assign(new Error("Wrong master password"), { code: "auth/invalid-credential" });
+  }
+}
+
+function workOffline(email, authPassword) {
+  tell("You're offline. This is the copy saved on this device, and changes will be sent once you're back online.");
+  store.syncWhenOnline(email, authPassword, () => tell("Back online. Your changes are syncing."));
+}
 
 function enter(email, encKey) {
   session = { email, encKey };
@@ -147,8 +175,15 @@ async function resume() {
   if (!saved) return false;
   try {
     await store.connect(store.loadConfig());
-    await store.signIn(saved.email, saved.authPassword);
-    enter(saved.email, saved.encKey);
+    try {
+      await store.signIn(saved.email, saved.authPassword);
+      enter(saved.email, saved.encKey);
+    } catch (err) {
+      // No connection: the key is already known to be right, so just check there is a copy here.
+      if (!store.isOfflineError(err) || !(await store.entriesOnThisDevice(saved.email))) throw err;
+      enter(saved.email, saved.encKey);
+      workOffline(saved.email, saved.authPassword);
+    }
     return true;
   } catch {
     await keep.clear();

@@ -4,6 +4,7 @@
 
 const CONFIG_KEY = "passkeppler.firebaseConfig";
 const EMAIL_KEY = "passkeppler.lastEmail";
+const UID_KEY = "passkeppler.uid:"; // plus the email; remembered so a device can find its own copy offline
 
 // ---- Saved settings on this device ----
 
@@ -77,21 +78,90 @@ export async function connect(config) {
   } catch {
     db = fb.getFirestore(app);
   }
+  // Nothing is sent to Firebase until we're signed in. Otherwise changes waiting from an earlier
+  // session could be sent without a login, refused, and lost.
+  await fb.disableNetwork(db);
+}
+
+async function signedIn(email, credential) {
+  uid = credential.user.uid;
+  try {
+    localStorage.setItem(UID_KEY + email.trim().toLowerCase(), uid);
+  } catch {
+    /* offline unlock just won't be available */
+  }
+  await fb.enableNetwork(db);
 }
 
 export async function signUp(email, authPassword) {
-  const credential = await fb.createUserWithEmailAndPassword(auth, email.trim(), authPassword);
-  uid = credential.user.uid;
+  await signedIn(email, await fb.createUserWithEmailAndPassword(auth, email.trim(), authPassword));
 }
 
 export async function signIn(email, authPassword) {
-  const credential = await fb.signInWithEmailAndPassword(auth, email.trim(), authPassword);
-  uid = credential.user.uid;
+  await signedIn(email, await fb.signInWithEmailAndPassword(auth, email.trim(), authPassword));
+}
+
+// ---- Working without a connection ----
+
+export function isOfflineError(err) {
+  return !!err && err.code === "auth/network-request-failed";
+}
+
+// The scrambled entries this device already holds, or null if there are none to open.
+export async function entriesOnThisDevice(email) {
+  let saved = null;
+  try {
+    saved = localStorage.getItem(UID_KEY + email.trim().toLowerCase());
+  } catch {
+    /* treated as none */
+  }
+  if (!saved || !db) return null;
+  try {
+    const snapshot = await fb.getDocsFromCache(fb.collection(db, "users", saved, "entries"));
+    if (snapshot.empty) return null;
+    uid = saved;
+    return snapshot.docs.map((d) => d.data());
+  } catch {
+    return null;
+  }
+}
+
+let stopSync = null;
+
+// While working offline: keeps trying to sign in, and the moment that works, changes made in
+// the meantime are sent. Calls onSynced once. Stopped by signOut.
+export function syncWhenOnline(email, authPassword, onSynced) {
+  if (stopSync) stopSync();
+  let busy = false;
+  const stop = () => {
+    clearInterval(timer);
+    window.removeEventListener("online", attempt);
+    stopSync = null;
+  };
+  async function attempt() {
+    if (busy) return;
+    busy = true;
+    try {
+      await signIn(email, authPassword);
+      stop();
+      onSynced();
+    } catch {
+      /* still offline; try again later */
+    } finally {
+      busy = false;
+    }
+  }
+  window.addEventListener("online", attempt);
+  const timer = setInterval(attempt, 30000);
+  stopSync = stop;
 }
 
 export async function signOut() {
+  if (stopSync) stopSync();
   uid = null;
   if (auth) await fb.signOut(auth);
+  // Changes still waiting stay on this device until the next sign-in.
+  if (db) await fb.disableNetwork(db);
 }
 
 // ---- Entries ----

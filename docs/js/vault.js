@@ -152,6 +152,11 @@ function showPane(name) {
   if (name === "settings") $("settings-title").focus();
 }
 
+// For app.js, which has news the vault screen should show.
+export function tell(message, isError = false) {
+  notify(message, isError);
+}
+
 function notify(message, isError = false) {
   const notice = $("notice");
   clearTimeout(noticeTimer);

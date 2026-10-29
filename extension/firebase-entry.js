@@ -14,4 +14,7 @@ export {
   writeBatch,
   deleteDoc,
   onSnapshot,
+  getDocsFromCache,
+  disableNetwork,
+  enableNetwork,
 } from "firebase/firestore";
