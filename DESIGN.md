@@ -100,6 +100,8 @@ Changes sync through Firebase to all devices. If the same entry is edited on two
 
 **Extension only**
 - Copy a username or password from the popup
-- Autofill on login pages
+- Autofill on login pages: press a button on an entry to fill the login form of the open tab. Nothing is filled automatically.
+- Stays unlocked until Lock is pressed or the browser closes
+- Import and Restore open in a full tab, because choosing a file closes a popup
 
 Nothing else is planned. If something is missing once it's in use, it gets added then.

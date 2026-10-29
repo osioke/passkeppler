@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "passkeppler",
+  "version": "0.1.0",
+  "description": "A broke man's alternative to password keeping.",
+  "minimum_chrome_version": "102",
+  "action": {
+    "default_title": "passkeppler",
+    "default_popup": "popup.html?view=popup"
+  },
+  "permissions": ["activeTab", "scripting", "storage", "clipboardWrite"],
+  "host_permissions": ["https://*.googleapis.com/*"]
+}

@@ -184,16 +184,31 @@ function hostOf(url) {
   }
 }
 
+// Set by the browser extension: the site of the open tab, and a way to fill it in.
+// { host, fill(entry) -> { user, password } }. Stays null in the web app.
+let page = null;
+
+export function setPage(info) {
+  page = info;
+  if (encKey) renderList(); // the vault may already be open
+}
+
+function onThisSite(entry) {
+  if (!page || !entry.url) return false;
+  const host = hostOf(/^[a-z]+:\/\//i.test(entry.url) ? entry.url : "https://" + entry.url);
+  return page.host === host || page.host.endsWith("." + host);
+}
+
 function renderList() {
   const query = $("search").value.trim();
   const shown = entries
     .filter((entry) => matches(entry, query))
-    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+    .sort((a, b) => Number(onThisSite(b)) - Number(onThisSite(a)) || a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
 
   const list = $("entry-list");
   list.replaceChildren(
     ...shown.map((entry) => {
-      const sub = entry.username || entry.email || (entry.url ? hostOf(entry.url) : "");
+      const sub = [onThisSite(entry) ? "This site" : "", entry.username || entry.email || (entry.url ? hostOf(entry.url) : "")].filter(Boolean).join(" · ");
       return el(
         "li",
         {},
@@ -363,10 +378,22 @@ function renderDetail() {
     el(
       "div",
       { class: "actions" },
+      page ? el("button", { type: "button", onclick: () => autofill(entry) }, "Autofill on this page") : null,
       el("button", { type: "button", onclick: () => openEditor(entry) }, "Edit"),
       el("button", { type: "button", class: "link danger", onclick: () => removeEntry(entry) }, "Delete")
     )
   );
+}
+
+// Fills the login form of the open tab. Asks first if the entry is for a different site.
+async function autofill(entry) {
+  if (!onThisSite(entry) && !confirm(`This entry is for ${entry.url ? hostOf(entry.url) : "no website"}, but this page is ${page.host}. Fill it in anyway?`)) return;
+  try {
+    const result = await page.fill(entry);
+    if (!result || (!result.user && !result.password)) notify("Couldn't find a login form on this page.", true);
+  } catch {
+    notify("Couldn't fill in this page. Some pages, such as browser pages, don't allow it.", true);
+  }
 }
 
 async function removeEntry(entry) {

@@ -27,7 +27,9 @@ function fromBase64(text) {
   return bytes;
 }
 
-export async function deriveKeys(email, masterPassword, iterations = KDF_ITERATIONS) {
+// extractable is false everywhere except the browser extension, which keeps the key for
+// the length of a browser session (see session.js).
+export async function deriveKeys(email, masterPassword, iterations = KDF_ITERATIONS, extractable = false) {
   // The email is part of the salt, so nothing has to be fetched before logging in.
   const salt = encoder.encode("passkeppler:v1:" + email.trim().toLowerCase());
   const password = encoder.encode(masterPassword.normalize("NFKC"));
@@ -52,7 +54,7 @@ export async function deriveKeys(email, masterPassword, iterations = KDF_ITERATI
     { name: "HKDF", hash: "SHA-256", salt: noSalt, info: encoder.encode("passkeppler-enc") },
     hkdfKey,
     { name: "AES-GCM", length: 256 },
-    false, // cannot be exported from the browser
+    extractable, // normally cannot be exported from the browser
     ["encrypt", "decrypt"]
   );
 

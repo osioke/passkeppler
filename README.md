@@ -73,12 +73,15 @@ In your forked repository, open **Settings → Pages**. Under **Build and deploy
 
 ### 5. Install the browser extension
 
-*(Coming with the first release.)* The extension isn't published in a store. You load it from the `extension` folder:
+The extension isn't published in a store, so you build it once and load it yourself. It works in Chrome, Edge, Brave and other Chromium browsers. You need [Node.js](https://nodejs.org) for the build.
 
 1. Download or clone your copy of this repository.
-2. In your browser, open the extensions page (`chrome://extensions` in Chrome, `edge://extensions` in Edge) and turn on **Developer mode**. Other browsers have their own address and menu names, so if you use a different one, search online for "[your browser] extensions page".
-3. Click **Load unpacked** and choose the `extension` folder.
-4. Open the extension, paste the same Firebase config, and sign in with the same email and master password.
+2. In a terminal, go into the `extension` folder and run `npm install`, then `node build.mjs`. This makes an `extension/dist` folder. (The build bundles Firebase into the extension, because browsers don't let extensions load code from the internet.)
+3. In your browser, open the extensions page (`chrome://extensions` in Chrome, `edge://extensions` in Edge, `brave://extensions` in Brave) and turn on **Developer mode**. Other browsers have their own address and menu names, so if you use a different one, search online for "[your browser] extensions page".
+4. Click **Load unpacked** and choose the `extension/dist` folder.
+5. Open the extension, paste the same Firebase config, and sign in with the same email and master password.
+
+Once unlocked, the extension stays unlocked until you press **Lock** or close the browser. To fill in a login, open the site, open the extension, choose the entry and press **Autofill on this page**. Entries for the site you're on are listed first. Choosing a file closes a popup, so **Import** and **Restore** are in a full tab: press **Open in a tab**. After you change the web app's code, run `node build.mjs` again and press the refresh arrow on the extensions page.
 
 ### 6. Bring in your old passwords (optional)
 

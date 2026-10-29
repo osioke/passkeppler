@@ -2,6 +2,7 @@ import { deriveKeys } from "./crypto.js";
 import * as store from "./store.js";
 import { setupRevealToggles, hideAllPasswords } from "./ui.js";
 import { openVault, closeVault } from "./vault.js";
+import * as keep from "./session.js";
 
 const $ = (id) => document.getElementById(id);
 const views = ["setup", "auth", "vault"];
@@ -98,18 +99,17 @@ $("auth-form").addEventListener("submit", async (event) => {
 
   setBusy(true);
   try {
-    const { authPassword, encKey } = await deriveKeys(email, password);
+    const { authPassword, encKey } = await deriveKeys(email, password, undefined, keep.enabled);
     await store.connect(store.loadConfig());
     if (mode === "create") await store.signUp(email, authPassword);
     else await store.signIn(email, authPassword);
 
-    session = { email, encKey };
+    await keep.save({ email, authPassword, encKey });
     store.saveLastEmail(email);
     $("password").value = "";
     $("confirm").value = "";
     hideAllPasswords();
-    openVault(email, encKey);
-    show("vault");
+    enter(email, encKey);
   } catch (err) {
     setError("auth-error", store.describeError(err));
   } finally {
@@ -117,10 +117,17 @@ $("auth-form").addEventListener("submit", async (event) => {
   }
 });
 
+function enter(email, encKey) {
+  session = { email, encKey };
+  openVault(email, encKey);
+  show("vault");
+}
+
 // ---- Lock ----
 
 $("lock").addEventListener("click", async () => {
   session = null;
+  await keep.clear();
   closeVault();
   hideAllPasswords();
   try {
@@ -134,9 +141,24 @@ $("lock").addEventListener("click", async () => {
 
 // ---- Start ----
 
+// Only the extension keeps an unlock between openings; for the web app load() finds nothing.
+async function resume() {
+  const saved = await keep.load();
+  if (!saved) return false;
+  try {
+    await store.connect(store.loadConfig());
+    await store.signIn(saved.email, saved.authPassword);
+    enter(saved.email, saved.encKey);
+    return true;
+  } catch {
+    await keep.clear();
+    return false;
+  }
+}
+
 if (store.loadConfig()) {
   $("email").value = store.loadLastEmail();
-  show("auth", $("email").value ? "password" : "email");
+  if (!(await resume())) show("auth", $("email").value ? "password" : "email");
 } else {
   show("setup", "config-text");
 }

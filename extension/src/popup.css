@@ -1,0 +1,7 @@
+/* The popup is small, so tighten the page. Opened in a tab (no ?view=popup) it looks like the web app. */
+body.is-popup { width: 24rem; min-height: 20rem; }
+.is-popup .page { padding: 1rem 1rem 1.5rem; max-width: none; }
+.is-popup .brand p { display: none; }
+.is-popup .brand h1 { font-size: 1.5rem; }
+/* Choosing a file closes a popup, so Import and Restore are only offered in a tab. */
+.is-popup #open-import, .is-popup #open-restore { display: none; }
