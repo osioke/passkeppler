@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="passkeppler">
+  <rect width="128" height="128" rx="28" fill="#0e6b5e"/>
+  <rect x="40" y="30" width="16" height="70" rx="3" fill="#ffffff"/>
+  <circle cx="72" cy="56" r="21" fill="none" stroke="#ffffff" stroke-width="16"/>
+</svg>

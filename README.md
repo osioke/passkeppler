@@ -6,7 +6,7 @@ passkeppler is a simple, personal password keeper. It lets you store your logins
 
 It is built for one person. It is deliberately small, with no teams, sharing or extras.
 
-> **Status: in development.** The instructions below describe how it is meant to be set up and used. They will be tightened as each part is finished.
+> **Status: first version complete.** The web app and the browser extension both work. It is a personal project, so expect rough edges, and see the note at the end about security.
 
 ---
 
@@ -111,7 +111,7 @@ The word list is the [EFF large wordlist](https://www.eff.org/dice) by the Elect
 ## For developers
 
 - **Plain HTML, CSS and JavaScript.** No framework and no build step for the web app.
-- **Layout:** `docs/` is the web app (served by GitHub Pages). `extension/` is the browser extension (Manifest V3). `firestore.rules` holds the database rules.
+- **Layout:** `docs/` is the web app (served by GitHub Pages). `extension/` is the browser extension (Manifest V3). It reuses the web app's files from `docs/`, and `node build.mjs` assembles it into `extension/dist`. `firestore.rules` holds the database rules.
 - **Backend:** Firebase Auth (email and password) and Firestore. The app talks to the database through a small separate layer, so another database could be added.
 - **Keys:** your master password goes through PBKDF2 to produce a master key, and HKDF splits that into two independent values. One is used as the Firebase password. The other is the encryption key and never leaves the device.
 - **Encryption:** each entry is encrypted as a single AES-256-GCM blob using the browser's Web Crypto API. Firestore stores only the ciphertext and a few plain fields (id, schema version, last-updated time).
