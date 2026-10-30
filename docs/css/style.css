@@ -244,25 +244,35 @@ body[data-view="vault"] .page { max-width: 40rem; }
 .small { font-size: 0.9rem; }
 .help { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.9rem; }
 
-/* The vault is a window: the status bar is always at the bottom of the screen, or of the list. */
-body[data-view="vault"] .page { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 0; }
-#view-vault { display: flex; flex: 1; flex-direction: column; margin-top: 1.25rem; padding-top: 0.75rem; }
+/* The vault is a window. The page itself never scrolls: the top (name, search, tools) and the
+   status bar stay put, and only the list, or the open screen, scrolls between them. */
+body[data-view="vault"] { overflow: hidden; }
+body[data-view="vault"] .page { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding-bottom: 0; }
+body[data-view="vault"] .brand { flex: none; }
+#view-vault { display: flex; flex: 1; flex-direction: column; min-height: 0; margin-top: 1rem; padding-top: 0.5rem; }
+#view-vault > [id^="pane-"] { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+#pane-list { display: flex; flex-direction: column; overflow: hidden !important; padding-bottom: 0 !important; }
+#pane-list > * { flex: none; }
+#pane-list > #entry-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 1rem; }
+@media (max-height: 44rem) {
+  body[data-view="vault"] .brand p { display: none; }
+  body[data-view="vault"] .page { padding-top: 1rem; }
+  button.tool:not(.link):not(.plain) { min-height: 3.4rem; }
+}
 
 .statusbar {
-  position: sticky;
-  bottom: 0;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-top: auto;
   padding: 0.7rem 0.25rem;
   color: var(--muted);
   font-size: 0.85rem;
   background: var(--paper);
   border-top: 1.5px solid var(--rule);
 }
-#view-vault > [id^="pane-"] { padding-bottom: 1.5rem; }
+#view-vault > [id^="pane-"]:not(#pane-list) { padding-bottom: 1.5rem; }
 .connection::before {
   content: "";
   display: inline-block;

@@ -5,3 +5,6 @@ body.is-popup { width: 24rem; min-height: 20rem; }
 .is-popup .brand h1 { font-size: 1.5rem; }
 /* Choosing a file closes a popup, so Import and Restore are only offered in a tab. */
 .is-popup #open-import, .is-popup #open-restore { display: none; }
+/* The popup is as tall as the browser allows (600px), so the vault can keep its top and status bar fixed. */
+body.is-popup[data-view="vault"] .page { height: 600px; }
+body.is-popup[data-view="vault"] .brand { display: none; }
