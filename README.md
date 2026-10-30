@@ -69,7 +69,8 @@ In your forked repository, open **Settings → Pages**. Under **Build and deploy
 1. Open your web page.
 2. Paste the Firebase config you copied.
 3. Enter your email and choose a password, then create your account. This is your **master password**, not a separate account password. You'll type it every time you unlock the vault, and it can't be recovered if you forget it. Use at least 12 characters; a few random words joined together works well.
-4. Optional: in Firebase, once your account exists, you can disable new sign-ups so nobody else can register on your project.
+4. Recommended: once your account exists, turn off new sign-ups so nobody else can register on your project. In Firebase, open **Authentication → Settings → User actions** and turn off **Enable create (sign-up)**. Only your existing account can then sign in.
+5. Recommended: so you never have to find your config again, open `docs/firebase-config.js`, replace `null` with your config (the part between the curly brackets, brackets included, as the comments in the file show), and publish it. After that, any device that opens your page only needs your email and master password. The config is an address, not a key, so it's safe for it to be public.
 
 ### 5. Install the browser extension
 
@@ -79,7 +80,7 @@ The extension isn't published in a store, so you build it once and load it yours
 2. In a terminal, go into the `extension` folder and run `npm install`, then `node build.mjs`. This makes an `extension/dist` folder. (The build bundles Firebase into the extension, because browsers don't let extensions load code from the internet.)
 3. In your browser, open the extensions page (`chrome://extensions` in Chrome, `edge://extensions` in Edge, `brave://extensions` in Brave) and turn on **Developer mode**. Other browsers have their own address and menu names, so if you use a different one, search online for "[your browser] extensions page".
 4. Click **Load unpacked** and choose the `extension/dist` folder.
-5. Open the extension, paste the same Firebase config, and sign in with the same email and master password.
+5. Open the extension and sign in with the same email and master password. (If you put your config in `docs/firebase-config.js` above, it connects on its own. Otherwise, paste the same config first.)
 
 Once unlocked, the extension stays unlocked until you press **Lock** or close the browser. To fill in a login, open the site, open the extension, choose the entry and press **Autofill on this page**. Entries for the site you're on are listed first. Choosing a file closes a popup, so **Import** and **Restore** are in a full tab: press **Open in tab**. After you change the web app's code, run `node build.mjs` again and press the refresh arrow on the extensions page.
 

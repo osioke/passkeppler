@@ -2,13 +2,19 @@
 // The rest of the app only calls the functions below, so another database
 // could be added later by writing a different version of this file.
 
+import bundled from "../firebase-config.js";
+
 const CONFIG_KEY = "passkeppler.firebaseConfig";
 const EMAIL_KEY = "passkeppler.lastEmail";
 const UID_KEY = "passkeppler.uid:"; // plus the email; remembered so a device can find its own copy offline
 
 // ---- Saved settings on this device ----
 
+// True when the config is built into this copy of the app (see docs/firebase-config.js).
+export const hasBundledConfig = !!bundled;
+
 export function loadConfig() {
+  if (bundled) return bundled;
   try {
     return JSON.parse(localStorage.getItem(CONFIG_KEY)) || null;
   } catch {

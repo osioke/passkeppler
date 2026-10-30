@@ -50,6 +50,8 @@ $("setup-form").addEventListener("submit", (event) => {
 
 $("setup-cancel").addEventListener("click", () => show("auth", "password"));
 
+$("change-config").parentElement.hidden = store.hasBundledConfig; // nothing to change when it's built in
+
 $("change-config").addEventListener("click", () => {
   $("setup-cancel").hidden = false;
   show("setup", "config-text");

@@ -1,0 +1,1 @@
+Logging in on a new device requires the firebase config, I had thought the design was firebase config is tied to the user's email, where the user can sign into passkeppler anywhere with just their email and master password and set or use previously set firebase config tied to/with that email and master password. Can this be done? Let's discuss.

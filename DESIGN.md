@@ -26,7 +26,7 @@ Both are part of the first version and use the same screens. They read and write
 
 Entries are stored in the user's own Firebase project (Firestore for the data, Firebase Auth for login), on the free plan.
 
-The app contains no Firebase credentials. On first run it asks for the Firebase config, which is pasted into a single box and saved on that device (and editable later in Settings). This means:
+The project as published contains no Firebase credentials. By default, on first run the app asks for the Firebase config, which is pasted into a single box and saved on that device. The owner can instead put their config in `docs/firebase-config.js`. Every device that opens their page, and every copy of the extension they build, then connects on its own, and the only things to remember are the email and master password. This means:
 
 - Anyone who forks the project can use their own Firebase project without touching anyone else's.
 - The config is not a secret. It is an address, not a key.
