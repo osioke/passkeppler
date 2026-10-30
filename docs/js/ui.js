@@ -31,6 +31,32 @@ export function icon(name) {
   return svg;
 }
 
+// Wraps a number field with − and + buttons in the app's own style (the browser's built-in
+// arrows can't be coloured). Typing in the field still works.
+export function stepper(input) {
+  const button = (label, text, dir) =>
+    el("button", {
+      type: "button",
+      class: "step",
+      "aria-label": label,
+      onclick: () => {
+        if (input.disabled) return;
+        try {
+          if (dir > 0) input.stepUp();
+          else input.stepDown();
+        } catch {
+          /* an empty or odd value: leave it for the screen's own check */
+        }
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      },
+    }, text);
+  const box = el("div", { class: "stepper" }, button("Decrease", "−", -1), button("Increase", "+", 1));
+  if (input.parentNode) input.replaceWith(box);
+  box.insertBefore(input, box.lastChild);
+  return box;
+}
+
 // ---- Show / hide for password-type fields ----
 // Any <input data-reveal> gets a Show/Hide button at its end.
 

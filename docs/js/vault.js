@@ -3,7 +3,7 @@
 
 import { encryptJSON, decryptJSON } from "./crypto.js";
 import * as store from "./store.js";
-import { el, copyText } from "./ui.js";
+import { el, copyText, stepper } from "./ui.js";
 import { mountGenerator } from "./generator.js";
 import { mountImport } from "./import-ui.js";
 import { downloadBackup, mountRestore } from "./backup-ui.js";
@@ -22,6 +22,8 @@ let noticeTimer = null;
 let renderedKey = ""; // which version of the open entry is on screen
 
 const MASK = "••••••••";
+
+stepper($("s-days"));
 
 // ---- Start and stop ----
 

@@ -35,6 +35,12 @@
 
 html { background: var(--paper); }
 
+/* Thin scrollbars in the app's green instead of the browser's grey */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+}
+
 body {
   margin: 0;
   color: var(--ink);
@@ -573,7 +579,23 @@ option {
   background: var(--paper);
 }
 
-input.num { width: 6rem; }
+input.num { width: 5rem; text-align: center; appearance: textfield; -moz-appearance: textfield; }
+input.num::-webkit-inner-spin-button, input.num::-webkit-outer-spin-button { appearance: none; margin: 0; }
+
+.stepper { display: flex; align-items: center; gap: 0.4rem; }
+.stepper input.num { margin: 0; }
+button.step:not(.link):not(.plain) {
+  width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  color: var(--accent);
+  font-size: 1.3rem;
+  line-height: 1;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 10px;
+}
+button.step:not(.link):not(.plain):hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.stepper:has(input:disabled) { opacity: 0.45; }
 
 /* ---- Password generator ---- */
 

@@ -2,7 +2,7 @@
 // Uses the browser's secure random numbers, never Math.random.
 
 import { WORDS } from "./wordlist.js";
-import { el, copyText } from "./ui.js";
+import { el, copyText, stepper } from "./ui.js";
 
 const LOWER = "abcdefghijklmnopqrstuvwxyz";
 const UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -95,16 +95,16 @@ export function mountGenerator(root, { onUse } = {}) {
     "div",
     { class: "gen-options" },
     el("label", { for: id("length") }, "Length"),
-    length,
+    stepper(length),
     el("label", { class: "check", for: id("special") }, useSpecial, " Include special characters"),
     el("label", { for: id("special-count") }, "How many special characters"),
-    specialCount
+    stepper(specialCount)
   );
   const phraseBox = el(
     "div",
     { class: "gen-options", hidden: true },
     el("label", { for: id("words") }, "Number of words"),
-    words,
+    stepper(words),
     el("label", { for: id("separator") }, "Separator"),
     separator
   );
