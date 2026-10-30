@@ -120,6 +120,10 @@ The word list is the [EFF large wordlist](https://www.eff.org/dice) by the Elect
 
 This is a personal project. It hasn't had an independent security review, so use it at your own risk and keep backups.
 
+## Working on it with an AI assistant
+
+[`PROMPT.md`](PROMPT.md) has a ready-made prompt you can paste into a new chat to start changing passkeppler. It tells the assistant to read these documents first and to keep changes small and simple.
+
 ## Design
 
 The full description of what passkeppler is and how it behaves is in [`DESIGN.md`](DESIGN.md).
