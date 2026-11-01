@@ -84,6 +84,12 @@ The extension isn't published in a store, so you build it once and load it yours
 
 Once unlocked, the extension stays unlocked until you press **Lock** or close the browser. To fill in a login, open the site, open the extension, choose the entry and press **Autofill on this page**. Entries for the site you're on are listed first. Choosing a file closes a popup, so **Import** and **Restore** are in a full tab: press **Open in tab**. After you change the web app's code, run `node build.mjs` again and press the refresh arrow on the extensions page.
 
+**Saving logins as you go.** When you sign in on a page with a normal login form (a username and a password on the same page), the extension notices it and a green **!** appears on its icon. Open the extension and it offers **Save this login?**, or **Update the saved password?** if you already have that site saved under the same name with a different password, or tells you it's **Already saved**. Nothing is saved until you press the button. What it noticed is kept in the browser's memory only, and is thrown away when you press **Lock**, close the tab or close the browser.
+
+To do this the extension has to run on every website, so your browser will say it can "read and change your data on all sites". It only looks at a form at the moment you submit it, and only passes what it sees to the extension itself. Pages that were already open before you installed or updated the extension need reloading once.
+
+For now this covers normal login forms only. Sign-up pages, two-step logins (username first, password on the next page), sites that don't use a normal form, and "Sign in with Google" are not noticed yet.
+
 ### 6. Bring in your old passwords (optional)
 
 Export from 1Password as CSV or XLSX, then choose **Import** in the app. Check the columns it matched, review the preview, and confirm. **Delete the original export file afterwards.** It contains your passwords as plain text.

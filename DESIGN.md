@@ -102,6 +102,28 @@ Changes sync through Firebase to all devices. If the same entry is edited on two
 - Copy a username or password from the popup
 - Autofill on login pages: press a button on an entry to fill the login form of the open tab. Nothing is filled automatically.
 - Stays unlocked until Lock is pressed or the browser closes
+- **Notices logins**: when a login form is submitted on a page, the extension remembers the username and password for that tab and puts a **!** badge on its icon. Opening the extension then offers **Save this login?** (nothing like it is saved), **Update the saved password?** (the same site and username is saved with a different password) or tells you it's **Already saved**. Nothing is saved until Save or Update is pressed; **Not now** drops it. See "Noticing logins" below.
 - Import and Restore open in a full tab, because choosing a file closes a popup
+
+## Noticing logins
+
+The extension runs a small watcher on every web page, and a small background part that keeps what the watcher saw. The vault itself can only be opened in the popup, so the background part never reads it: the popup compares what was noticed with the vault when it is opened.
+
+- A login is remembered per tab, in the browser's memory only (never written to disk, never visible to web pages). It is thrown away when it is saved, put aside with **Not now**, when **Lock** is pressed, when its tab closes, or when the browser closes.
+- A site matches a saved entry when the entry's website is that site (or the site the page is inside of, so `login.example.com` matches `example.com`) and the username or email is the same, ignoring capital letters.
+- **Update** changes only the password of that entry. **Save** adds a new entry titled with the site, with the site's address, and the name typed in Email if it contains an @ and in Username if not.
+- passkeppler's own unlock page is never noticed, so the master password can't be offered for saving.
+- The extension runs on all websites, which browsers describe as being able to "read and change your data on all sites". It only reads a form when it is submitted.
+
+It is built one kind of login at a time, easiest first, each solid before the next:
+
+1. **Done:** a normal login page, with the username and password on one page and a real submit.
+2. Sign-up pages (a new-password field, often a confirm field, and an email).
+3. Two-step logins (username on one page, password on the next).
+4. Sites that don't use a normal form submit (the login is sent in the background, or the page changes without a reload).
+5. "Sign in with Google" and similar, where there is no password: offer to save a note that the site uses it.
+6. The hardest ones: logins inside frames, and unusual fields. Some will be missed.
+
+Later, the offer is meant to appear as a pop-up on the page itself, one login type at a time. For now it appears when the extension is opened.
 
 Nothing else is planned. If something is missing once it's in use, it gets added then.

@@ -11,5 +11,9 @@
     "default_popup": "popup.html?view=popup"
   },
   "permissions": ["activeTab", "scripting", "storage", "clipboardWrite"],
-  "host_permissions": ["https://*.googleapis.com/*"]
+  "host_permissions": ["https://*.googleapis.com/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    { "matches": ["http://*/*", "https://*/*"], "js": ["watcher.js"], "run_at": "document_idle" }
+  ]
 }

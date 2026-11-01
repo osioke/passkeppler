@@ -36,6 +36,7 @@ await writeFile(path.join(dist, "popup.html"), html);
 await cp(path.join(here, "manifest.json"), path.join(dist, "manifest.json"));
 await cp(path.join(here, "src", "popup.css"), path.join(dist, "popup.css"));
 await cp(path.join(here, "src", "extension.js"), path.join(dist, "extension.js"));
+for (const file of ["offer.js", "watcher.js", "background.js"]) await cp(path.join(here, "src", file), path.join(dist, file));
 await cp(path.join(here, "src", "session.js"), path.join(dist, "js", "session.js"));
 
 // 4. Firebase, bundled into one local file.

@@ -208,6 +208,26 @@ export function setPage(info) {
   if (encKey) renderList(); // the vault may already be open
 }
 
+// Set by the browser extension: called with the entries each time the list is drawn, so it can
+// show an offer above the list. Stays null in the web app.
+let listWatcher = null;
+
+export function watchList(fn) {
+  listWatcher = fn;
+  if (encKey) fn(entries); // the vault may already be open
+}
+
+// For the extension: saves a login it noticed on a page. With an id it changes that entry's
+// password; without one it adds a new entry.
+export async function saveNoticed({ id, title, url, username, email, password }) {
+  const old = id ? entries.find((e) => e.id === id) : null;
+  if (id && !old) throw new Error("That entry is no longer here.");
+  const entry = old ? { ...old, password } : { ...normalise({ title, url, username, email, password }), id: crypto.randomUUID(), createdAt: Date.now() };
+  await persist(entry);
+  renderList();
+  if (currentId === entry.id && !$("pane-detail").hidden) renderDetail();
+}
+
 function onThisSite(entry) {
   if (!page || !entry.url) return false;
   const host = hostOf(/^[a-z]+:\/\//i.test(entry.url) ? entry.url : "https://" + entry.url);
@@ -278,6 +298,7 @@ function renderList() {
   $("list-summary").textContent = summary;
   $("count").textContent = entries.length === 1 ? "1 entry" : `${entries.length} entries`;
   showBackupStatus();
+  if (listWatcher) listWatcher(entries);
 }
 
 function showBackupStatus() {
