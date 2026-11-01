@@ -102,6 +102,7 @@ Changes sync through Firebase to all devices. If the same entry is edited on two
 - Copy a username or password from the popup
 - Autofill on login pages: press a button on an entry to fill the login form of the open tab. Nothing is filled automatically.
 - Stays unlocked until Lock is pressed or the browser closes
+- Opens at once from the copy of the vault already on the device, and signs in to Firebase in the background, so opening it never waits for the network. If there is no copy yet (a new device), it signs in first.
 - **Notices logins**: when a login form is submitted on a page, the extension remembers the username and password for that tab and puts a **!** badge on its icon. Opening the extension then offers **Save this login?** (nothing like it is saved), **Update the saved password?** (the same site and username is saved with a different password) or tells you it's **Already saved**. Nothing is saved until Save or Update is pressed; **Not now** drops it. See "Noticing logins" below.
 - Import and Restore open in a full tab, because choosing a file closes a popup
 
@@ -112,6 +113,8 @@ The extension runs a small watcher on every web page, and a small background par
 - A login is remembered per tab, in the browser's memory only (never written to disk, never visible to web pages). It is thrown away when it is saved, put aside with **Not now**, when **Lock** is pressed, when its tab closes, or when the browser closes.
 - A site matches a saved entry when the entry's website is that site (or the site the page is inside of, so `login.example.com` matches `example.com`) and the username or email is the same, ignoring capital letters.
 - **Update** changes only the password of that entry. **Save** adds a new entry titled with the site, with the site's address, and the name typed in Email if it contains an @ and in Username if not.
+- A login counts when the form is submitted, when its submit button is pressed, or when Enter is pressed in the password field, because sites differ in which of these really happens. The same login seen twice within a few seconds is kept once. The watcher starts at the very beginning of every page, and is added to pages already open when the extension is installed or refreshed.
+- The popup says whether the open page is being watched. If a login form was skipped (for example it had two password fields, or no username), it says why. The reason is kept in memory only and holds no passwords or names.
 - passkeppler's own unlock page is never noticed, so the master password can't be offered for saving.
 - The extension runs on all websites, which browsers describe as being able to "read and change your data on all sites". It only reads a form when it is submitted.
 

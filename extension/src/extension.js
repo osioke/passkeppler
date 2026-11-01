@@ -184,6 +184,17 @@ async function start() {
   }
   if (!host) return;
 
+  // Whether the page is being watched for logins, so a miss can be told apart from "not looking".
+  const watching = el("p", { class: "watching" });
+  card.after(watching); // under the offer, if there is one
+  chrome.tabs.sendMessage(tab.id, { type: "passkeppler.ping" }).then(
+    async () => {
+      const why = ((await chrome.storage.session.get("passkeppler.skipped"))["passkeppler.skipped"] || {})[tab.id];
+      watching.textContent = why ? `Watching this page. The last form here was skipped because ${why}.` : "Watching this page for logins.";
+    },
+    () => (watching.textContent = "Not watching this page yet. Reload it once.")
+  );
+
   setPage({
     host,
     async fill(entry) {

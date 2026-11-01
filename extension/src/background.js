@@ -4,6 +4,7 @@
 // aside, press Lock, or close the tab. We never open the vault here; only the popup can.
 
 const PENDING = "passkeppler.pending";
+const SKIPPED = "passkeppler.skipped"; // { tabId: why the last login form there was not noticed }
 
 async function readAll() {
   return (await chrome.storage.session.get(PENDING))[PENDING] || {};
@@ -15,7 +16,18 @@ function showBadge(tabId) {
   chrome.action.setTitle({ tabId, title: "passkeppler: a login was noticed on this page. Open to save it." }).catch(() => {});
 }
 
+async function setSkipped(tabId, reason) {
+  const all = (await chrome.storage.session.get(SKIPPED))[SKIPPED] || {};
+  if (reason) all[tabId] = reason;
+  else delete all[tabId];
+  await chrome.storage.session.set({ [SKIPPED]: all });
+}
+
 chrome.runtime.onMessage.addListener((message, sender) => {
+  if (message && message.type === "passkeppler.skipped" && sender.tab && typeof message.reason === "string") {
+    setSkipped(sender.tab.id, message.reason.slice(0, 200));
+    return;
+  }
   if (!message || message.type !== "passkeppler.noticed" || !sender.tab || !sender.url) return;
   const { username, password } = message;
   if (typeof username !== "string" || typeof password !== "string" || !username || !password) return;
@@ -31,6 +43,7 @@ chrome.runtime.onMessage.addListener((message, sender) => {
   if (url.protocol !== "https:" && url.protocol !== "http:") return;
 
   const tabId = sender.tab.id;
+  setSkipped(tabId, "");
   readAll().then(async (all) => {
     all[tabId] = { host: url.host.replace(/^www\./, ""), origin: url.origin, username, password };
     await chrome.storage.session.set({ [PENDING]: all });
@@ -45,8 +58,20 @@ chrome.tabs.onUpdated.addListener(async (tabId, change) => {
 });
 
 chrome.tabs.onRemoved.addListener(async (tabId) => {
+  setSkipped(tabId, "");
   const all = await readAll();
   if (!all[tabId]) return;
   delete all[tabId];
   await chrome.storage.session.set({ [PENDING]: all });
+});
+
+// Pages that were open before the extension was installed, updated or refreshed have no watcher
+// yet (the browser only adds it to pages loaded afterwards), so add it to them now.
+chrome.runtime.onInstalled.addListener(async () => {
+  const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
+  for (const tab of tabs) {
+    chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["watcher.js"] }).catch(() => {
+      /* a page that doesn't allow it, such as the browser's own store pages */
+    });
+  }
 });

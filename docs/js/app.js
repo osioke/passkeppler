@@ -13,6 +13,7 @@ let session = null; // { email, encKey }
 let mode = "unlock"; // or "create"
 
 function show(name, focusId) {
+  $("opening").hidden = true;
   for (const view of views) $("view-" + view).hidden = view !== name;
   document.body.dataset.view = name;
   document.title =
@@ -160,7 +161,7 @@ function enter(email, encKey) {
 
 // ---- Lock ----
 
-$("lock").addEventListener("click", async () => {
+async function lock() {
   session = null;
   await keep.clear();
   closeVault();
@@ -172,9 +173,23 @@ $("lock").addEventListener("click", async () => {
   }
   setMode("unlock");
   show("auth", "password");
-});
+}
+
+$("lock").addEventListener("click", lock);
 
 // ---- Start ----
+
+// Changes made before this finishes wait on this device and are sent once it works.
+async function signInBehindTheScenes(saved) {
+  try {
+    await store.signIn(saved.email, saved.authPassword);
+  } catch (err) {
+    if (store.isOfflineError(err)) return workOffline(saved.email, saved.authPassword);
+    // The kept unlock no longer works (the master password may have been changed elsewhere).
+    await lock();
+    setError("auth-error", store.describeError(err));
+  }
+}
 
 // Only the extension keeps an unlock between openings; for the web app load() finds nothing.
 async function resume() {
@@ -182,6 +197,13 @@ async function resume() {
   if (!saved) return false;
   try {
     await store.connect(store.loadConfig());
+    // If this device already holds a copy of the vault, open it straight away and sign in to
+    // Firebase behind the scenes, instead of making you wait for the network.
+    if (await store.entriesOnThisDevice(saved.email)) {
+      enter(saved.email, saved.encKey);
+      signInBehindTheScenes(saved);
+      return true;
+    }
     try {
       await store.signIn(saved.email, saved.authPassword);
       enter(saved.email, saved.encKey);
