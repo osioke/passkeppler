@@ -149,6 +149,46 @@
     if (area) look(area);
   }, true);
 
+  // "Sign in with Google" and similar. Which sign-in service a button or link stands for, or "".
+  // Judged by its short visible text or label, or by where it points. Bare logos with no label,
+  // and buttons inside other sites' frames (like Google's own button), can't be recognised.
+  const NAMES = "Google|Facebook|Apple|GitHub|Microsoft|Twitter|LinkedIn|Amazon|Discord|Yahoo";
+  const phrase = new RegExp("(?:sign|log)\\s?-?\\s?(?:in|up|on)\\s+(?:in\\s+)?(?:with|using|via|through)\\s+(?:your\\s+)?(" + NAMES + ")\\b|continue\\s+(?:with|using)\\s+(?:your\\s+)?(" + NAMES + ")\\b|(?:login|signin|signup)\\s+(?:with|using|via)\\s+(" + NAMES + ")\\b", "i");
+  const places = [
+    [/(^|\.)accounts\.google\.com$/, "Google"], [/(^|\.)facebook\.com$/, "Facebook"], [/(^|\.)appleid\.apple\.com$/, "Apple"],
+    [/^github\.com$/, "GitHub"], [/^login\.microsoftonline\.com$|^login\.live\.com$/, "Microsoft"], [/(^|\.)linkedin\.com$/, "LinkedIn"],
+    [/^discord\.com$/, "Discord"], [/^(api\.)?twitter\.com$|^x\.com$/, "Twitter"], [/^www\.amazon\.com$|^amazon\.com$/, "Amazon"], [/^login\.yahoo\.com$/, "Yahoo"],
+  ];
+  function providerOf(element) {
+    const own = location.host.replace(/^www\./, "");
+    for (let el = element, depth = 0; el && el !== document.body && depth < 4; el = el.parentElement, depth++) {
+      const text = (el.textContent || "").trim();
+      const label = [el.getAttribute("aria-label"), el.getAttribute("title"), el.value, text.length <= 60 ? text : ""].join(" ");
+      const found = label.match(phrase);
+      if (found) return found.slice(1).find(Boolean).replace(/^./, (c) => c.toUpperCase()).replace(/^Github$/i, "GitHub").replace(/^Linkedin$/i, "LinkedIn");
+      if (el.tagName === "A" && el.href && /oauth|authorize|\/auth\b|\/login|signin|sso/i.test(el.href)) {
+        try {
+          const target = new URL(el.href).host;
+          const hit = places.find(([pattern]) => pattern.test(target) && target.replace(/^www\./, "") !== own);
+          if (hit) return hit[1];
+        } catch {
+          /* not a real address */
+        }
+      }
+    }
+    return "";
+  }
+  // card.js (same page, same sandbox) asks this to know whether a sign-in button is still showing.
+  globalThis.passkepplerProviderShowing = () =>
+    [...document.querySelectorAll("button, a, [role=button], input[type=submit], input[type=button], input[type=image]")].some((el) => seen(el) && providerOf(el));
+
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const clicked = target && target.closest("button, a, [role=button], input[type=submit], input[type=button], input[type=image]");
+    const provider = clicked && providerOf(clicked);
+    if (provider) send({ type: "passkeppler.provider", provider });
+  }, true);
+
   // The popup asks this, so it can say whether the page is being watched.
   try {
     chrome.runtime.onMessage.addListener((message, sender, reply) => {

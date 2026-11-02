@@ -75,7 +75,7 @@
     card.append(brand, heading, text, row);
     root.append(style, card);
 
-    const who = `${offer.host}, as ${offer.username}`;
+    const who = offer.provider ? `${offer.host} with ${offer.provider}` : `${offer.host}, as ${offer.username}`;
     const did = offer.signup ? "signed up at" : "signed in to";
     const note = offer.others ? ` You have ${offer.others} other saved login${offer.others === 1 ? "" : "s"} for this site.` : "";
     const named = `“${offer.title || "Untitled"}”`;
@@ -83,6 +83,10 @@
       heading.textContent = "Unlock to save this login";
       text.textContent = `You ${did} ${who}. Unlock passkeppler and it will check whether this needs saving.`;
       yes.textContent = "Unlock";
+    } else if (offer.provider && offer.kind === "save") {
+      heading.textContent = `Note that this site uses ${offer.provider}?`;
+      text.textContent = `You ${did} ${who}. Save a note in your vault so you remember. No password is stored.${note}`;
+      yes.textContent = "Save note";
     } else if (offer.kind === "update") {
       heading.textContent = "Update the saved password?";
       text.textContent = `You ${did} ${who} with a different password from the one saved in ${named}. Replace the saved one?`;
@@ -165,13 +169,20 @@
     (document.body || document.documentElement).append(host);
   }
 
+  const sameSite = (a, b) => a === b || a.endsWith("." + b) || b.endsWith("." + a);
+
   function present(offer) {
     close();
+    // A "Sign in with Google" goes through the other service's own pages: never show the card there.
+    if (offer.provider && !sameSite(location.host.replace(/^www\./, ""), offer.host)) return;
     const started = Date.now();
+    const patience = offer.provider ? 10 * 60 * 1000 : 30000; // signing in elsewhere can take a while
     waiting = setInterval(() => {
-      if (Date.now() - started > 30000) return close(); // gave up; the icon's badge is still there
+      if (Date.now() - started > patience) return close(); // gave up; the icon's badge is still there
       if (Date.now() - started < 800 || !document.body) return;
       if ([...document.querySelectorAll("input[type=password]")].some(visible)) return; // still on the login form
+      // Still showing the sign-in button: it hasn't worked (yet), or you backed out.
+      if (offer.provider && globalThis.passkepplerProviderShowing && globalThis.passkepplerProviderShowing()) return;
       render(offer);
     }, 300);
   }

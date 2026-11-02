@@ -139,10 +139,14 @@ function drawCard(offer) {
   if (!offer) return card.replaceChildren();
 
   const login = offer.login;
-  const who = `${login.host}, as ${login.username}`;
+  const who = login.provider ? `${login.host} with ${login.provider}` : `${login.host}, as ${login.username}`;
   const title = offer.entry ? `“${offer.entry.title || "Untitled"}”` : "";
   let heading, text, yes;
-  if (offer.kind === "save") {
+  if (offer.kind === "save" && login.provider) {
+    heading = `Note that this site uses ${login.provider}?`;
+    text = `You signed in to ${who}. Save a note in your vault so you remember. No password is stored.${othersNote(offer.others)}`;
+    yes = "Save note";
+  } else if (offer.kind === "save") {
     heading = "Save this login?";
     text = `You signed in to ${who}. It isn't in your vault yet.${othersNote(offer.others)}`;
     yes = "Save";

@@ -20,7 +20,20 @@ function onSite(entry, host) {
   return !!entryHost && (host === entryHost || host.endsWith("." + entryHost));
 }
 
+// "Sign in with Google" and similar: no password is involved, so the site is only noted. A site
+// counts as already noted when one of its entries has the note line in its notes.
+export const providerNote = (provider) => `Signs in with ${provider}.`;
+
+function decideProvider(login, entries) {
+  const here = entries.filter((entry) => onSite(entry, login.host));
+  const note = providerNote(login.provider).toLowerCase();
+  const noted = here.find((entry) => (entry.notes || "").toLowerCase().includes(note));
+  if (noted) return { kind: "same", entry: noted, others: 0 };
+  return { kind: "save", others: here.length };
+}
+
 export function decide(login, entries) {
+  if (login.provider) return decideProvider(login, entries);
   // The name typed, and the email too if the form had both (a sign-up often does).
   const names = [login.username, login.email].filter(Boolean).map((name) => name.trim().toLowerCase());
   const here = entries.filter((entry) => onSite(entry, login.host));
@@ -37,6 +50,7 @@ export function decide(login, entries) {
 
 // What a new entry would hold. A name with an @ in it goes in Email, anything else in Username.
 export function newEntryFrom(login) {
+  if (login.provider) return { title: login.host, url: login.origin, username: "", email: "", password: "", notes: providerNote(login.provider) };
   const names = [...new Set([login.username, login.email].filter(Boolean))];
   return {
     title: login.host,

@@ -100,7 +100,9 @@ To do this the extension has to run on every website, so your browser will say i
 
 **Pages with no form.** Many sites don't use a real form: their own script sends the login in the background and changes the page without reloading. These are now noticed too, when you press a button (or Enter) next to a filled password box. Buttons that look like "Show password" or "Forgot password" don't count. As before, the card only appears once the password box is gone, so a wrong password isn't offered.
 
-For now this covers normal, sign-up, two-step and no-form logins. Forms for changing a password and "Sign in with Google" are not noticed yet.
+**"Sign in with Google" and similar.** With these there is no password to save, so passkeppler offers to save a note instead: **Note that this site uses Google?** Pressing **Save note** adds an entry for the site with no password and the note "Signs in with Google." in its notes. It is recognised by the button's short text or label ("Sign in with…", "Log in with…", "Continue with…" and Google, Facebook, Apple, GitHub, Microsoft, Twitter, LinkedIn, Amazon, Discord, Yahoo), or by a link going to that service's sign-in page. The card waits until you are back on the site and its sign-in button is gone, so backing out of the Google window offers nothing, and it never shows on the other service's own pages. If the site already has that note, nothing appears. Which Google account you chose is not known to passkeppler, so it isn't recorded.
+
+For now this covers normal, sign-up, two-step, no-form and "sign in with" logins. Forms for changing a password are not noticed yet.
 
 ### 6. Bring in your old passwords (optional)
 

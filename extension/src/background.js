@@ -15,11 +15,13 @@ const STEPS = "passkeppler.steps"; // { tabId: { host, username, at } } the firs
 const NEVER = "passkeppler.never"; // [host] sites you chose "Never for this site" for (kept on this device)
 const STEP_MS = 10 * 60 * 1000; // how long a first step stays good for its password step
 const OFFER_MS = 60000; // how long a new page may still show the card after the login
+const PROVIDER_MS = 10 * 60 * 1000; // a "Sign in with Google" can take a while, and the offer waits for it
+const PROVIDERS = ["Google", "Facebook", "Apple", "GitHub", "Microsoft", "Twitter", "LinkedIn", "Amazon", "Discord", "Yahoo"];
 
 // Tabs whose own card is the one answering, so we don't also tell that card to close.
 const answering = new Set();
 
-const loginOf = (item) => ({ host: item.host, origin: item.origin, username: item.username, email: item.email, password: item.password });
+const loginOf = (item) => ({ host: item.host, origin: item.origin, username: item.username, email: item.email, password: item.password, provider: item.provider || "" });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -133,7 +135,7 @@ async function decideFor(tabId) {
   const session = await startVault();
   if (!session) {
     // Locked: we can't tell whether it is new, changed or saved, so ask to unlock first.
-    if (!item.offer) await setOffer(tabId, item, { kind: "locked", host: item.host, username: item.username, at: Date.now() });
+    if (!item.offer) await setOffer(tabId, item, { kind: "locked", host: item.host, username: item.username, provider: item.provider || "", at: Date.now() });
     return;
   }
   const result = await askVault({ type: "passkeppler.decide", login: loginOf(item) });
@@ -141,7 +143,7 @@ async function decideFor(tabId) {
     askVault({ type: "passkeppler.open", session }); // it tells us when the vault has loaded
     return;
   }
-  const offer = { kind: result.kind, title: result.title, others: result.others, signup: item.signup, host: item.host, username: item.username, at: Date.now() };
+  const offer = { kind: result.kind, title: result.title, others: result.others, signup: item.signup, host: item.host, username: item.username, provider: item.provider || "", at: Date.now() };
   if (result.kind === "same") {
     // Already saved exactly like this. Signing in: stay quiet. Signing up: remind you it is already there.
     if (!item.signup) return drop(tabId);
@@ -193,6 +195,27 @@ async function noticed(message, sender) {
   decideFor(tabId);
 }
 
+// A click on "Sign in with Google" (or similar). Nothing is saved or even offered until the page
+// shows the sign-in worked; the card waits for that (see card.js).
+async function providerClicked(message, sender) {
+  if (!PROVIDERS.includes(message.provider) || !sender.url) return;
+  let url;
+  try {
+    url = new URL(sender.url);
+  } catch {
+    return;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return;
+  const host = url.host.replace(/^www\./, "");
+  const tabId = sender.tab.id;
+  if (await isNever(host)) return setSkipped(tabId, "you chose “Never for this site” for it");
+  setSkipped(tabId, "");
+  await change((all) => {
+    all[tabId] = { host, origin: url.origin, username: "", email: "", password: "", signup: false, provider: message.provider };
+  });
+  decideFor(tabId);
+}
+
 async function firstStep(message, sender) {
   if (typeof message.username !== "string" || !message.username || message.username.length > 500 || !sender.url) return;
   let url;
@@ -208,7 +231,7 @@ async function firstStep(message, sender) {
 // A new page asks whether an offer is waiting for its tab (a login usually changes the page).
 async function hello(sender) {
   const item = (await readAll())[sender.tab.id];
-  if (item && item.offer && Date.now() - item.offer.at < OFFER_MS) return { offer: item.offer };
+  if (item && item.offer && Date.now() - item.offer.at < (item.provider ? PROVIDER_MS : OFFER_MS)) return { offer: item.offer };
   return {};
 }
 
@@ -256,6 +279,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     setSkipped(sender.tab.id, message.reason.slice(0, 200));
   } else if (message.type === "passkeppler.firstStep") {
     firstStep(message, sender);
+  } else if (message.type === "passkeppler.provider" && typeof message.provider === "string") {
+    providerClicked(message, sender);
   } else if (message.type === "passkeppler.noticed") {
     noticed(message, sender);
   } else if (message.type === "passkeppler.hello") {
@@ -273,7 +298,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 chrome.tabs.onUpdated.addListener(async (tabId, change) => {
   if (!change.status) return;
   const item = (await readAll())[tabId];
-  if (item && !(item.offer && item.offer.kind === "same")) showBadge(tabId);
+  if (item && !item.provider && !(item.offer && item.offer.kind === "same")) showBadge(tabId); // a provider sign-in isn't known to have worked yet
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
