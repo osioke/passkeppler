@@ -75,17 +75,25 @@
     root.append(style, card);
 
     const who = `${offer.host}, as ${offer.username}`;
+    const did = offer.signup ? "signed up at" : "signed in to";
+    const note = offer.others ? ` You have ${offer.others} other saved login${offer.others === 1 ? "" : "s"} for this site.` : "";
+    const named = `“${offer.title || "Untitled"}”`;
     if (offer.kind === "locked") {
       heading.textContent = "Unlock to save this login";
-      text.textContent = `You signed in to ${who}. Unlock passkeppler and it will check whether this needs saving.`;
+      text.textContent = `You ${did} ${who}. Unlock passkeppler and it will check whether this needs saving.`;
       yes.textContent = "Unlock";
     } else if (offer.kind === "update") {
       heading.textContent = "Update the saved password?";
-      text.textContent = `You signed in to ${who} with a different password from the one saved in “${offer.title || "Untitled"}”. Replace the saved one?`;
+      text.textContent = `You ${did} ${who} with a different password from the one saved in ${named}. Replace the saved one?`;
       yes.textContent = "Update";
+    } else if (offer.kind === "same") {
+      heading.textContent = "Already saved";
+      text.textContent = `You ${did} ${who}. This login is already in your vault as ${named}. Nothing to change.`;
+      yes.textContent = "OK";
+      no.remove();
     } else {
       heading.textContent = "Save this login?";
-      text.textContent = `You signed in to ${who}. It isn't in your vault yet.`;
+      text.textContent = `You ${did} ${who}. It isn't in your vault yet.${note}`;
       yes.textContent = "Save";
     }
 
@@ -95,6 +103,14 @@
       if (!event.isTrusted) return;
       yes.disabled = no.disabled = true;
       let reply;
+      if (offer.kind === "same") {
+        try {
+          chrome.runtime.sendMessage({ type: "passkeppler.answer", action: "dismiss" }).catch(() => {});
+        } catch {
+          /* the extension was reloaded or removed while this page was open */
+        }
+        return close();
+      }
       if (offer.kind === "locked") {
         // Only the extension's own window may ask for the master password, never this page.
         try {

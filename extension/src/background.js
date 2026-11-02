@@ -8,13 +8,15 @@
 // card. If the vault isn't open (you're locked, or it's still starting), the icon's "!" badge and
 // the popup are the fallback. We never read the vault here.
 
-const PENDING = "passkeppler.pending"; // { tabId: { host, origin, username, password, offer? } }
+const PENDING = "passkeppler.pending"; // { tabId: { host, origin, username, email, password, signup, offer? } }
 const SKIPPED = "passkeppler.skipped"; // { tabId: why the last login form there was not noticed }
 const SESSION = "passkeppler.session"; // the unlock kept by the popup (see session.js)
 const OFFER_MS = 60000; // how long a new page may still show the card after the login
 
 // Tabs whose own card is the one answering, so we don't also tell that card to close.
 const answering = new Set();
+
+const loginOf = (item) => ({ host: item.host, origin: item.origin, username: item.username, email: item.email, password: item.password });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -112,14 +114,18 @@ async function decideFor(tabId) {
     if (!item.offer) await setOffer(tabId, item, { kind: "locked", host: item.host, username: item.username, at: Date.now() });
     return;
   }
-  const login = { host: item.host, origin: item.origin, username: item.username, password: item.password };
-  const result = await askVault({ type: "passkeppler.decide", login });
+  const result = await askVault({ type: "passkeppler.decide", login: loginOf(item) });
   if (!result || !result.ready) {
     askVault({ type: "passkeppler.open", session }); // it tells us when the vault has loaded
     return;
   }
-  if (result.kind === "same") return drop(tabId); // already saved exactly like this: stay quiet
-  await setOffer(tabId, item, { kind: result.kind, title: result.title, host: item.host, username: item.username, at: Date.now() });
+  const offer = { kind: result.kind, title: result.title, others: result.others, signup: item.signup, host: item.host, username: item.username, at: Date.now() };
+  if (result.kind === "same") {
+    // Already saved exactly like this. Signing in: stay quiet. Signing up: remind you it is already there.
+    if (!item.signup) return drop(tabId);
+    resetBadge(tabId);
+  }
+  await setOffer(tabId, item, offer);
 }
 
 async function decideAllWaiting() {
@@ -132,6 +138,7 @@ async function noticed(message, sender) {
   const { username, password } = message;
   if (typeof username !== "string" || typeof password !== "string" || !username || !password) return;
   if (username.length > 500 || password.length > 1000) return;
+  const email = typeof message.email === "string" ? message.email.slice(0, 500) : "";
 
   // The site comes from the page itself, not from what the page's form said.
   let url;
@@ -145,7 +152,7 @@ async function noticed(message, sender) {
   const tabId = sender.tab.id;
   setSkipped(tabId, "");
   await change((all) => {
-    all[tabId] = { host: url.host.replace(/^www\./, ""), origin: url.origin, username, password };
+    all[tabId] = { host: url.host.replace(/^www\./, ""), origin: url.origin, username, email, password, signup: message.signup === true };
   });
   showBadge(tabId);
   decideFor(tabId);
@@ -177,8 +184,7 @@ async function answer(message, sender) {
     }
   }
   if (message.action !== "accept") return { ok: false };
-  const login = { host: item.host, origin: item.origin, username: item.username, password: item.password };
-  const result = await askVault({ type: "passkeppler.save", login });
+  const result = await askVault({ type: "passkeppler.save", login: loginOf(item) });
   if (result && result.ok) {
     answering.add(tabId);
     await drop(tabId);
@@ -210,7 +216,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 // Going to another page clears the badge, and a login usually sends you to another page, so put it back.
 chrome.tabs.onUpdated.addListener(async (tabId, change) => {
   if (!change.status) return;
-  if ((await readAll())[tabId]) showBadge(tabId);
+  const item = (await readAll())[tabId];
+  if (item && !(item.offer && item.offer.kind === "same")) showBadge(tabId);
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {

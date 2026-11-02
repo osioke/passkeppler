@@ -72,7 +72,7 @@ async function open(session) {
 function decideNow(login) {
   if (!entries) return { ready: false };
   const result = decide(login, entries);
-  return { ready: true, kind: result.kind, title: result.entry ? result.entry.title : "" };
+  return { ready: true, kind: result.kind, title: result.entry ? result.entry.title : "", others: result.others };
 }
 
 async function save(login) {

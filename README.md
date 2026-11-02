@@ -90,7 +90,9 @@ While you're unlocked, the extension keeps your vault open in a hidden page of i
 
 To do this the extension has to run on every website, so your browser will say it can "read and change your data on all sites". It only looks at a form at the moment you submit it, and only passes what it sees to the extension itself. The extension adds its watcher to pages that are already open when you install or refresh it, so they don't need reloading. The popup also says whether the page you're on is being watched, and if a login form was skipped, why.
 
-For now this covers normal login forms only. Sign-up pages, two-step logins (username first, password on the next page), sites that don't use a normal form, and "Sign in with Google" are not noticed yet.
+**Sign-ups** work the same way. When you create an account (an email, maybe a username, and a new password, usually typed twice), the card says **You signed up at…** and offers to save it. If you already have that login saved it says **Already saved**, and if the site already has other saved logins under another name it mentions them. First name, phone and other sign-up boxes are ignored; only the email and username are kept.
+
+For now this covers normal login and sign-up forms. Forms for changing a password, two-step logins (username first, password on the next page), sites that don't use a normal form, and "Sign in with Google" are not noticed yet.
 
 ### 6. Bring in your old passwords (optional)
 

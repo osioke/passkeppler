@@ -116,8 +116,10 @@ The extension runs a small watcher on every web page and a small background part
 - The icon also gets a **!** badge, and the popup shows the offer at the top of the list, as a fallback.
 
 - A login is remembered per tab, in the browser's memory only (never written to disk, never visible to web pages). It is thrown away when it is saved, put aside with **Not now**, when **Lock** is pressed, when its tab closes, or when the browser closes.
-- A site matches a saved entry when the entry's website is that site (or the site the page is inside of, so `login.example.com` matches `example.com`) and the username or email is the same, ignoring capital letters.
-- **Update** changes only the password of that entry. **Save** adds a new entry titled with the site, with the site's address, and the name typed in Email if it contains an @ and in Username if not.
+- A form counts as a **sign-up** when it has two password fields holding the same text (new password and "confirm"), or one password field marked as a new password. The email is the field of type email (or one that looks like an address), and the username is a field named like a username; first name, phone and similar boxes are ignored. A form with two different password fields, or three, is a change-password form and is skipped for now.
+- On a sign-up, a login that is already saved exactly like this is not silent: the card says **Already saved** (with OK). On a plain sign-in it stays silent. If the site already has saved logins under another name, the Save card says how many.
+- A site matches a saved entry when the entry's website is that site (or the site the page is inside of, so `login.example.com` matches `example.com`) and the username or email is the same as the username or the email typed, ignoring capital letters.
+- **Update** changes only the password of that entry. **Save** adds a new entry titled with the site, with the site's address, and each name typed goes in Email if it contains an @ and in Username if not.
 - A login counts when the form is submitted, when its submit button is pressed, or when Enter is pressed in the password field, because sites differ in which of these really happens. The same login seen twice within a few seconds is kept once. The watcher starts at the very beginning of every page, and is added to pages already open when the extension is installed or refreshed.
 - The popup says whether the open page is being watched. If a login form was skipped (for example it had two password fields, or no username), it says why. The reason is kept in memory only and holds no passwords or names.
 - passkeppler's own unlock page is never noticed, so the master password can't be offered for saving.
@@ -126,7 +128,7 @@ The extension runs a small watcher on every web page and a small background part
 It is built one kind of login at a time, easiest first, each solid before the next:
 
 1. **Done:** a normal login page, with the username and password on one page and a real submit.
-2. Sign-up pages (a new-password field, often a confirm field, and an email).
+2. **Done:** sign-up pages (a new-password field, often a confirm field, and an email).
 3. Two-step logins (username on one page, password on the next).
 4. Sites that don't use a normal form submit (the login is sent in the background, or the page changes without a reload).
 5. "Sign in with Google" and similar, where there is no password: offer to save a note that the site uses it.

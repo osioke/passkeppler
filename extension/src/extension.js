@@ -4,7 +4,7 @@
 
 import { setPage, watchList, saveNoticed, tell } from "./js/vault.js";
 import { el, icon } from "./js/ui.js";
-import { decide, newEntryFrom } from "./offer.js";
+import { decide, newEntryFrom, othersNote } from "./offer.js";
 
 const popup = new URLSearchParams(location.search).get("view") === "popup";
 document.body.classList.toggle("is-popup", popup);
@@ -94,7 +94,7 @@ function drawCard(offer) {
   let heading, text, yes;
   if (offer.kind === "save") {
     heading = "Save this login?";
-    text = `You signed in to ${who}. It isn't in your vault yet.`;
+    text = `You signed in to ${who}. It isn't in your vault yet.${othersNote(offer.others)}`;
     yes = "Save";
   } else if (offer.kind === "update") {
     heading = "Update the saved password?";
