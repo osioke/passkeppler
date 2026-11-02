@@ -103,12 +103,16 @@ Changes sync through Firebase to all devices. If the same entry is edited on two
 - Autofill on login pages: press a button on an entry to fill the login form of the open tab. Nothing is filled automatically.
 - Stays unlocked until Lock is pressed or the browser closes
 - Opens at once from the copy of the vault already on the device, and signs in to Firebase in the background, so opening it never waits for the network. If there is no copy yet (a new device), it signs in first.
-- **Notices logins**: when a login form is submitted on a page, the extension remembers the username and password for that tab and puts a **!** badge on its icon. Opening the extension then offers **Save this login?** (nothing like it is saved), **Update the saved password?** (the same site and username is saved with a different password) or tells you it's **Already saved**. Nothing is saved until Save or Update is pressed; **Not now** drops it. See "Noticing logins" below.
+- **Notices logins**: when a login form is submitted on a page, the extension remembers the username and password for that tab. A small card then appears on the page itself with **Save this login?** (nothing like it is saved) or **Update the saved password?** (the same site and username is saved with a different password); if it is already saved exactly like this, nothing is shown. Nothing is saved until Save or Update is pressed; **Not now** drops it. If the card can't appear, the icon shows a **!** badge and the popup offers the same thing. See "Noticing logins" below.
 - Import and Restore open in a full tab, because choosing a file closes a popup
 
 ## Noticing logins
 
-The extension runs a small watcher on every web page, and a small background part that keeps what the watcher saw. The vault itself can only be opened in the popup, so the background part never reads it: the popup compares what was noticed with the vault when it is opened.
+The extension runs a small watcher on every web page and a small background part that keeps what the watcher saw. The background part never reads the vault itself. While you are unlocked, a hidden page of the extension keeps the unlocked vault open in memory (the same data the popup shows) and answers whether a login is new, a changed password, or already saved. That page is created when you unlock and closed when you press Lock, so it exists only while the popup could also open the vault. It saves a login the same way the popup does: encrypted on the device, then to Firebase.
+
+- The card is drawn on the page in its own sealed box, so the page's styles and scripts can't change or press it; only a real click by you counts. It shows the site and the name, never the password.
+- The card waits until the login seems to have worked, meaning no visible password box is left on the page, and is offered for about a minute across page changes. If the site sends the login form back (a wrong password), no card is shown and the login waits in the popup.
+- When it can't be shown on the page (locked, or the vault still starting), the icon gets a **!** badge and the popup shows the offer at the top of the list. Unlocking while a login is waiting puts the card on its page.
 
 - A login is remembered per tab, in the browser's memory only (never written to disk, never visible to web pages). It is thrown away when it is saved, put aside with **Not now**, when **Lock** is pressed, when its tab closes, or when the browser closes.
 - A site matches a saved entry when the entry's website is that site (or the site the page is inside of, so `login.example.com` matches `example.com`) and the username or email is the same, ignoring capital letters.
