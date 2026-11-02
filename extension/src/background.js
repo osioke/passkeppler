@@ -11,6 +11,9 @@
 const PENDING = "passkeppler.pending"; // { tabId: { host, origin, username, email, password, signup, offer? } }
 const SKIPPED = "passkeppler.skipped"; // { tabId: why the last login form there was not noticed }
 const SESSION = "passkeppler.session"; // the unlock kept by the popup (see session.js)
+const STEPS = "passkeppler.steps"; // { tabId: { host, username, at } } the first step of a two-step login
+const NEVER = "passkeppler.never"; // [host] sites you chose "Never for this site" for (kept on this device)
+const STEP_MS = 10 * 60 * 1000; // how long a first step stays good for its password step
 const OFFER_MS = 60000; // how long a new page may still show the card after the login
 
 // Tabs whose own card is the one answering, so we don't also tell that card to close.
@@ -58,6 +61,25 @@ async function setSkipped(tabId, reason) {
   if (reason) all[tabId] = reason;
   else delete all[tabId];
   await chrome.storage.session.set({ [SKIPPED]: all });
+}
+
+async function setStep(tabId, step) {
+  const all = (await chrome.storage.session.get(STEPS))[STEPS] || {};
+  if (step) all[tabId] = step;
+  else delete all[tabId];
+  await chrome.storage.session.set({ [STEPS]: all });
+}
+
+const sameSiteOrParent = (a, b) => a === b || a.endsWith("." + b) || b.endsWith("." + a);
+
+async function isNever(host) {
+  const list = (await chrome.storage.local.get(NEVER))[NEVER] || [];
+  return list.some((site) => host === site || host.endsWith("." + site));
+}
+
+async function addNever(host) {
+  const list = (await chrome.storage.local.get(NEVER))[NEVER] || [];
+  if (!list.includes(host)) await chrome.storage.local.set({ [NEVER]: [...list, host] });
 }
 
 // ---- The hidden vault page ----
@@ -135,8 +157,9 @@ async function decideAllWaiting() {
 // ---- Messages from pages ----
 
 async function noticed(message, sender) {
-  const { username, password } = message;
-  if (typeof username !== "string" || typeof password !== "string" || !username || !password) return;
+  const { password } = message;
+  let { username } = message;
+  if (typeof username !== "string" || typeof password !== "string" || !password) return;
   if (username.length > 500 || password.length > 1000) return;
   const email = typeof message.email === "string" ? message.email.slice(0, 500) : "";
 
@@ -148,14 +171,38 @@ async function noticed(message, sender) {
     return;
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") return;
-
+  const host = url.host.replace(/^www\./, "");
   const tabId = sender.tab.id;
+
+  if (await isNever(host)) return setSkipped(tabId, "you chose “Never for this site” for it");
+
+  // The password step of a two-step login has no username on the page: take it from the first step.
+  if (!username) {
+    const step = ((await chrome.storage.session.get(STEPS))[STEPS] || {})[tabId];
+    if (!message.secondStep || !step || Date.now() - step.at > STEP_MS || !sameSiteOrParent(step.host, host)) {
+      return setSkipped(tabId, "there was no username on this page, and no earlier step with one was seen on this tab");
+    }
+    username = step.username;
+  }
+
   setSkipped(tabId, "");
   await change((all) => {
-    all[tabId] = { host: url.host.replace(/^www\./, ""), origin: url.origin, username, email, password, signup: message.signup === true };
+    all[tabId] = { host, origin: url.origin, username, email, password, signup: message.signup === true };
   });
   showBadge(tabId);
   decideFor(tabId);
+}
+
+async function firstStep(message, sender) {
+  if (typeof message.username !== "string" || !message.username || message.username.length > 500 || !sender.url) return;
+  let url;
+  try {
+    url = new URL(sender.url);
+  } catch {
+    return;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return;
+  await setStep(sender.tab.id, { host: url.host.replace(/^www\./, ""), username: message.username, at: Date.now() });
 }
 
 // A new page asks whether an offer is waiting for its tab (a login usually changes the page).
@@ -171,6 +218,13 @@ async function answer(message, sender) {
   if (!item || !item.offer) return { ok: false, message: "This login isn't waiting any more. Open passkeppler to check." };
   if (message.action === "dismiss") {
     answering.add(tabId);
+    await drop(tabId);
+    setTimeout(() => answering.delete(tabId), 1000);
+    return { ok: true };
+  }
+  if (message.action === "never") {
+    answering.add(tabId);
+    await addNever(item.host);
     await drop(tabId);
     setTimeout(() => answering.delete(tabId), 1000);
     return { ok: true };
@@ -200,6 +254,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (!sender.tab) return; // everything else comes from a page
   if (message.type === "passkeppler.skipped" && typeof message.reason === "string") {
     setSkipped(sender.tab.id, message.reason.slice(0, 200));
+  } else if (message.type === "passkeppler.firstStep") {
+    firstStep(message, sender);
   } else if (message.type === "passkeppler.noticed") {
     noticed(message, sender);
   } else if (message.type === "passkeppler.hello") {
@@ -222,6 +278,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, change) => {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   setSkipped(tabId, "");
+  setStep(tabId, null);
   change((all) => delete all[tabId]);
 });
 
@@ -230,7 +287,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
   // Unlocked: open the hidden vault page. Locked: close it.
   if (changes[SESSION]) {
     if (changes[SESSION].newValue) startVault().then((session) => session && askVault({ type: "passkeppler.open", session }));
-    else chrome.offscreen.closeDocument().catch(() => {});
+    else {
+      chrome.offscreen.closeDocument().catch(() => {});
+      chrome.storage.session.remove(STEPS); // locking forgets any first step too
+    }
   }
   // A login that was put aside, saved or cleared (here, in the popup, or by Lock): take its card off the page.
   if (changes[PENDING]) {

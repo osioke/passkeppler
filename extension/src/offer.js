@@ -51,3 +51,11 @@ export function newEntryFrom(login) {
 export function othersNote(others) {
   return others ? ` You have ${others} other saved login${others === 1 ? "" : "s"} for this site.` : "";
 }
+
+// When a password is replaced, the old one is kept on the entry as a hidden extra field, so a
+// mistaken update never loses it. Returns the fields to add (none if nothing changed).
+export function historyFields(entry, newPassword, when = new Date()) {
+  if (!entry.password || entry.password === newPassword) return [];
+  const day = when.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return [{ label: `Previous password, ${day}`, value: entry.password, hidden: true }];
+}

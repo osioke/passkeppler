@@ -70,7 +70,8 @@
     const row = Object.assign(document.createElement("div"), { className: "row" });
     const yes = Object.assign(document.createElement("button"), { type: "button", className: "primary" });
     const no = Object.assign(document.createElement("button"), { type: "button", className: "link", textContent: "Not now" });
-    row.append(yes, no);
+    const never = Object.assign(document.createElement("button"), { type: "button", className: "link", textContent: "Never for this site" });
+    row.append(yes, no, never);
     card.append(brand, heading, text, row);
     root.append(style, card);
 
@@ -91,6 +92,7 @@
       text.textContent = `You ${did} ${who}. This login is already in your vault as ${named}. Nothing to change.`;
       yes.textContent = "OK";
       no.remove();
+      never.remove();
     } else {
       heading.textContent = "Save this login?";
       text.textContent = `You ${did} ${who}. It isn't in your vault yet.${note}`;
@@ -101,7 +103,7 @@
     let failed = false;
     yes.addEventListener("click", async (event) => {
       if (!event.isTrusted) return;
-      yes.disabled = no.disabled = true;
+      yes.disabled = no.disabled = never.disabled = true;
       let reply;
       if (offer.kind === "same") {
         try {
@@ -120,7 +122,7 @@
         }
         say(card, "Waiting for you to unlock", (reply && reply.ok) ? "Type your master password in the passkeppler window. This card will then ask to save." : (reply && reply.message) || "Click the passkeppler icon in your toolbar and unlock it. This card will then ask to save.");
         yes.remove();
-        no.disabled = false;
+        no.disabled = never.disabled = false;
         return;
       }
       try {
@@ -136,9 +138,19 @@
         say(card, "Couldn't save", (reply && reply.message) || "Open passkeppler from the toolbar and save it there.");
         failed = true; // leave the login waiting, so the popup can still save it
         yes.remove();
+        never.remove();
         no.disabled = false;
         no.textContent = "Close";
       }
+    });
+    never.addEventListener("click", (event) => {
+      if (!event.isTrusted) return;
+      try {
+        chrome.runtime.sendMessage({ type: "passkeppler.answer", action: "never" }).catch(() => {});
+      } catch {
+        /* the extension was reloaded or removed while this page was open */
+      }
+      close();
     });
     no.addEventListener("click", (event) => {
       if (!event.isTrusted) return;

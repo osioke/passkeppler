@@ -4,7 +4,7 @@
 
 import { setPage, watchList, saveNoticed, tell } from "./js/vault.js";
 import { el, icon } from "./js/ui.js";
-import { decide, newEntryFrom, othersNote } from "./offer.js";
+import { decide, historyFields, newEntryFrom, othersNote } from "./offer.js";
 
 const popup = new URLSearchParams(location.search).get("view") === "popup";
 document.body.classList.toggle("is-popup", popup);
@@ -74,6 +74,56 @@ async function forget(ids) {
   await chrome.storage.session.set({ [PENDING]: all });
 }
 
+// ---- "Never for this site": kept on this device, with a list in Settings to undo it ----
+
+const NEVER = "passkeppler.never";
+const neverList = async () => (await chrome.storage.local.get(NEVER))[NEVER] || [];
+
+async function neverHere(host) {
+  const list = await neverList();
+  if (!list.includes(host)) await chrome.storage.local.set({ [NEVER]: [...list, host] });
+  putAside();
+  tell(`passkeppler won't offer to save on ${host} any more. You can undo this in Settings.`);
+}
+
+const neverBox = el("div", { class: "never" });
+document.getElementById("settings-form").after(neverBox);
+
+async function drawNever() {
+  const list = await neverList();
+  neverBox.replaceChildren(
+    el("h4", {}, "Sites passkeppler won't offer to save"),
+    list.length
+      ? el(
+          "ul",
+          {},
+          list.map((host) =>
+            el(
+              "li",
+              {},
+              el("span", {}, host),
+              el(
+                "button",
+                {
+                  type: "button",
+                  class: "link",
+                  "aria-label": `Offer to save on ${host} again`,
+                  onclick: async () => {
+                    await chrome.storage.local.set({ [NEVER]: (await neverList()).filter((site) => site !== host) });
+                    drawNever();
+                  },
+                },
+                "Remove"
+              )
+            )
+          )
+        )
+      : el("p", { class: "help" }, "None. Choose “Never for this site” on an offer to add one.")
+  );
+}
+
+document.getElementById("open-settings").addEventListener("click", drawNever);
+
 function putAside() {
   pending = null;
   reminder = null;
@@ -112,7 +162,11 @@ function drawCard(offer) {
     yesButton.disabled = true;
     pending = null; // so redrawing the list while saving doesn't offer it again
     try {
-      await saveNoticed(offer.kind === "update" ? { id: offer.entry.id, password: login.password } : newEntryFrom(login));
+      await saveNoticed(
+        offer.kind === "update"
+          ? { id: offer.entry.id, password: login.password, customFields: [...offer.entry.customFields, ...historyFields(offer.entry, login.password)] }
+          : newEntryFrom(login)
+      );
     } catch {
       pending = login;
       yesButton.disabled = false;
@@ -126,7 +180,13 @@ function drawCard(offer) {
   card.replaceChildren(
     el("h3", {}, heading),
     el("p", {}, text),
-    el("div", { class: "actions" }, yesButton, offer.kind === "same" ? null : el("button", { type: "button", class: "link", onclick: putAside }, "Not now"))
+    el(
+      "div",
+      { class: "actions" },
+      yesButton,
+      offer.kind === "same" ? null : el("button", { type: "button", class: "link", onclick: putAside }, "Not now"),
+      offer.kind === "same" ? null : el("button", { type: "button", class: "link", onclick: () => neverHere(login.host) }, "Never for this site")
+    )
   );
 }
 

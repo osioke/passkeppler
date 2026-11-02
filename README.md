@@ -92,7 +92,13 @@ To do this the extension has to run on every website, so your browser will say i
 
 **Sign-ups** work the same way. When you create an account (an email, maybe a username, and a new password, usually typed twice), the card says **You signed up at…** and offers to save it. If you already have that login saved it says **Already saved**, and if the site already has other saved logins under another name it mentions them. First name, phone and other sign-up boxes are ignored; only the email and username are kept.
 
-For now this covers normal login and sign-up forms. Forms for changing a password, two-step logins (username first, password on the next page), sites that don't use a normal form, and "Sign in with Google" are not noticed yet.
+**Two-step logins** (username or email on one step, password on the next, on separate pages or on the same page) are joined up: the extension remembers the name from the first step, and when the password step follows on the same site it offers to save the two together. The name is kept in the browser's memory only, for up to 10 minutes, and is thrown away on **Lock** or when the tab closes. If a password step comes with no earlier step seen on that tab, it is skipped, and the popup says why.
+
+**Updating keeps history.** When you press **Update**, the old password is kept on that entry as a hidden extra field called "Previous password, <date>" (show it with the eye button), so a mistaken update never loses anything.
+
+**Never for this site.** Every offer has a **Never for this site** button. The site is then not watched at all. The list is in the popup under **Settings** ("Sites passkeppler won't offer to save"), where **Remove** brings a site back. The list is kept on that device only, in the extension's own storage, as plain site names (no passwords), and is not synced.
+
+For now this covers normal login, sign-up and two-step forms. Forms for changing a password, sites that don't use a normal form, and "Sign in with Google" are not noticed yet.
 
 ### 6. Bring in your old passwords (optional)
 

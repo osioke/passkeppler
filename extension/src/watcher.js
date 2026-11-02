@@ -2,8 +2,9 @@
 // the background part of the extension which username and password were typed. It reads nothing
 // else on the page, and what it sees is only ever passed to this extension.
 //
-// Stages 1 and 2: a normal login form (username and password on one page) and a sign-up form
-// (email, maybe a username, a new password and often a "confirm" copy of it). A login counts when the
+// Stages 1 to 3: a normal login form (username and password on one page), a sign-up form
+// (email, maybe a username, a new password and often a "confirm" copy of it), and a two-step login
+// (the username on one step, the password on the next; the background part joins the two). A login counts when the
 // form is submitted, when its submit button is pressed, or when Enter is pressed in the password
 // field. Sites differ in which of these actually happens, so all three are watched. The same
 // login seen twice within a few seconds is only sent once.
@@ -27,6 +28,28 @@
     }
   }
 
+  function send(message) {
+    try {
+      chrome.runtime.sendMessage(message).catch(() => {});
+    } catch {
+      /* the extension was reloaded or removed while this page was open */
+    }
+  }
+
+  // The first step of a two-step login: only a username or email is asked for. We just remember it
+  // (in the background part, because the page usually changes before the password step).
+  function firstStep(inputs) {
+    const fields = inputs.filter((input) => ["text", "email", "tel"].includes(input.type) && input.value.trim());
+    if (!fields.length || fields.length > 2) return;
+    const field = fields.find(
+      (input) =>
+        input.type === "email" ||
+        /username|email|tel/.test(input.autocomplete) ||
+        /user|e-?mail|login|account|phone|identifier/i.test(input.name + " " + input.id + " " + input.placeholder)
+    );
+    if (field) send({ type: "passkeppler.firstStep", username: field.value.trim() });
+  }
+
   function look(form) {
     // passkeppler's own unlock page: the master password must never be offered for saving.
     if (form.id === "auth-form" && document.getElementById("view-vault")) return;
@@ -36,7 +59,7 @@
     // One password field is a login. Two with the same text in them is a sign-up (new password and
     // "confirm"). Anything else, like current + new password, is a change-password form: later.
     const passwords = inputs.filter((input) => input.type === "password");
-    if (!passwords.length) return; // not a login form at all (a search box, say)
+    if (!passwords.length) return firstStep(inputs); // maybe the first step of a two-step login
     if (passwords.length > 2) return skip("it has three or more password fields, like a change-password form");
     if (passwords.length === 2 && passwords[0].value !== passwords[1].value) {
       return skip("it has two different password fields, like a change-password form");
@@ -71,18 +94,15 @@
     } else {
       // The closest filled-in field above the password.
       const user = above[above.length - 1];
-      if (!user) return skip("there was no filled-in username or email above the password");
-      username = user.value.trim();
+      // No username on this step: maybe the second step of a two-step login. The background part
+      // knows the first step, so it decides.
+      username = user ? user.value.trim() : "";
     }
 
     const key = username + "\n" + email + "\n" + password.value;
     if (key === sent.key && Date.now() - sent.at < 3000) return;
     sent = { key, at: Date.now() };
-    try {
-      chrome.runtime.sendMessage({ type: "passkeppler.noticed", username, email, password: password.value, signup }).catch(() => {});
-    } catch {
-      /* the extension was reloaded or removed while this page was open */
-    }
+    send({ type: "passkeppler.noticed", username, email, password: password.value, signup, secondStep: !username });
   }
 
   // Capture: see it before the page's own code can stop it or clear the fields.
@@ -99,7 +119,7 @@
 
   document.addEventListener("keydown", (event) => {
     const field = event.target;
-    if (event.key === "Enter" && field instanceof HTMLInputElement && field.type === "password" && field.form) look(field.form);
+    if (event.key === "Enter" && field instanceof HTMLInputElement && field.form && ["password", "text", "email", "tel"].includes(field.type)) look(field.form);
   }, true);
 
   // The popup asks this, so it can say whether the page is being watched.

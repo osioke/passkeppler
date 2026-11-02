@@ -219,10 +219,10 @@ export function watchList(fn) {
 
 // For the extension: saves a login it noticed on a page. With an id it changes that entry's
 // password; without one it adds a new entry.
-export async function saveNoticed({ id, title, url, username, email, password }) {
+export async function saveNoticed({ id, title, url, username, email, password, customFields }) {
   const old = id ? entries.find((e) => e.id === id) : null;
   if (id && !old) throw new Error("That entry is no longer here.");
-  const entry = old ? { ...old, password } : { ...normalise({ title, url, username, email, password }), id: crypto.randomUUID(), createdAt: Date.now() };
+  const entry = old ? { ...old, password, ...(customFields ? { customFields } : {}) } : { ...normalise({ title, url, username, email, password }), id: crypto.randomUUID(), createdAt: Date.now() };
   await persist(entry);
   renderList();
   if (currentId === entry.id && !$("pane-detail").hidden) renderDetail();

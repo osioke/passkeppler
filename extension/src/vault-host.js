@@ -7,7 +7,7 @@
 
 import { decryptJSON, encryptJSON } from "./js/crypto.js";
 import * as store from "./js/store.js";
-import { decide, newEntryFrom } from "./offer.js";
+import { decide, historyFields, newEntryFrom } from "./offer.js";
 
 let encKey = null;
 let entries = null; // decrypted, in memory only; null until the vault has loaded
@@ -81,7 +81,7 @@ async function save(login) {
   if (result.kind === "same") return { ok: true, kind: "same" };
   const entry =
     result.kind === "update"
-      ? { ...result.entry, password: login.password }
+      ? { ...result.entry, password: login.password, customFields: [...result.entry.customFields, ...historyFields(result.entry, login.password)] }
       : { ...normalise(newEntryFrom(login)), id: crypto.randomUUID(), createdAt: Date.now() };
   entry.updatedAt = Date.now();
   const blob = await encryptJSON(encKey, entry);
