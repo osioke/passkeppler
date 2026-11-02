@@ -112,7 +112,8 @@ The extension runs a small watcher on every web page and a small background part
 
 - The card is drawn on the page in its own sealed box, so the page's styles and scripts can't change or press it; only a real click by you counts. It shows the site and the name, never the password.
 - The card waits until the login seems to have worked, meaning no visible password box is left on the page, and is offered for about a minute across page changes. If the site sends the login form back (a wrong password), no card is shown and the login waits in the popup.
-- When it can't be shown on the page (locked, or the vault still starting), the icon gets a **!** badge and the popup shows the offer at the top of the list. Unlocking while a login is waiting puts the card on its page.
+- While locked, the vault can't be checked, so the card says **Unlock to save this login**. Its Unlock button opens the extension's own popup; the master password is never typed on a web page, because a page's scripts can see what is typed into it. Unlocking turns the card into Save or Update (or removes it if the login is already saved). Closing the browser locks the extension, so the first login after starting the browser usually shows this card.
+- The icon also gets a **!** badge, and the popup shows the offer at the top of the list, as a fallback.
 
 - A login is remembered per tab, in the browser's memory only (never written to disk, never visible to web pages). It is thrown away when it is saved, put aside with **Not now**, when **Lock** is pressed, when its tab closes, or when the browser closes.
 - A site matches a saved entry when the entry's website is that site (or the site the page is inside of, so `login.example.com` matches `example.com`) and the username or email is the same, ignoring capital letters.

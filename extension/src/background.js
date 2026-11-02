@@ -93,11 +93,25 @@ async function startVault() {
 
 // ---- Deciding what to offer ----
 
+// Stores the offer for this tab and tells the page to show it (unless a newer login replaced this one).
+async function setOffer(tabId, item, offer) {
+  const kept = await change((all) => {
+    if (!all[tabId] || all[tabId].password !== item.password || all[tabId].username !== item.username) return false;
+    all[tabId].offer = offer;
+    return true;
+  });
+  if (kept) chrome.tabs.sendMessage(tabId, { type: "passkeppler.offer", offer }).catch(() => {});
+}
+
 async function decideFor(tabId) {
   const item = (await readAll())[tabId];
-  if (!item || item.offer) return;
+  if (!item || (item.offer && item.offer.kind !== "locked")) return;
   const session = await startVault();
-  if (!session) return; // locked: the badge and the popup will do
+  if (!session) {
+    // Locked: we can't tell whether it is new, changed or saved, so ask to unlock first.
+    if (!item.offer) await setOffer(tabId, item, { kind: "locked", host: item.host, username: item.username, at: Date.now() });
+    return;
+  }
   const login = { host: item.host, origin: item.origin, username: item.username, password: item.password };
   const result = await askVault({ type: "passkeppler.decide", login });
   if (!result || !result.ready) {
@@ -105,17 +119,11 @@ async function decideFor(tabId) {
     return;
   }
   if (result.kind === "same") return drop(tabId); // already saved exactly like this: stay quiet
-  const offer = { kind: result.kind, title: result.title, host: item.host, username: item.username, at: Date.now() };
-  const kept = await change((all) => {
-    if (!all[tabId] || all[tabId].password !== item.password || all[tabId].username !== item.username) return false; // a newer login replaced it
-    all[tabId].offer = offer;
-    return true;
-  });
-  if (kept) chrome.tabs.sendMessage(tabId, { type: "passkeppler.offer", offer }).catch(() => {});
+  await setOffer(tabId, item, { kind: result.kind, title: result.title, host: item.host, username: item.username, at: Date.now() });
 }
 
 async function decideAllWaiting() {
-  for (const [tabId, item] of Object.entries(await readAll())) if (!item.offer) decideFor(Number(tabId));
+  for (const [tabId, item] of Object.entries(await readAll())) if (!item.offer || item.offer.kind === "locked") decideFor(Number(tabId));
 }
 
 // ---- Messages from pages ----
@@ -159,6 +167,14 @@ async function answer(message, sender) {
     await drop(tabId);
     setTimeout(() => answering.delete(tabId), 1000);
     return { ok: true };
+  }
+  if (message.action === "unlock") {
+    try {
+      await chrome.action.openPopup({ windowId: sender.tab.windowId });
+      return { ok: true };
+    } catch {
+      return { ok: false, message: "Click the passkeppler icon in your toolbar and unlock it. This card will then ask to save." };
+    }
   }
   if (message.action !== "accept") return { ok: false };
   const login = { host: item.host, origin: item.origin, username: item.username, password: item.password };

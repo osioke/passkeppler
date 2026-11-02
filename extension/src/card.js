@@ -75,7 +75,11 @@
     root.append(style, card);
 
     const who = `${offer.host}, as ${offer.username}`;
-    if (offer.kind === "update") {
+    if (offer.kind === "locked") {
+      heading.textContent = "Unlock to save this login";
+      text.textContent = `You signed in to ${who}. Unlock passkeppler and it will check whether this needs saving.`;
+      yes.textContent = "Unlock";
+    } else if (offer.kind === "update") {
       heading.textContent = "Update the saved password?";
       text.textContent = `You signed in to ${who} with a different password from the one saved in “${offer.title || "Untitled"}”. Replace the saved one?`;
       yes.textContent = "Update";
@@ -91,6 +95,18 @@
       if (!event.isTrusted) return;
       yes.disabled = no.disabled = true;
       let reply;
+      if (offer.kind === "locked") {
+        // Only the extension's own window may ask for the master password, never this page.
+        try {
+          reply = await chrome.runtime.sendMessage({ type: "passkeppler.answer", action: "unlock" });
+        } catch {
+          /* handled below */
+        }
+        say(card, "Waiting for you to unlock", (reply && reply.ok) ? "Type your master password in the passkeppler window. This card will then ask to save." : (reply && reply.message) || "Click the passkeppler icon in your toolbar and unlock it. This card will then ask to save.");
+        yes.remove();
+        no.disabled = false;
+        return;
+      }
       try {
         reply = await chrome.runtime.sendMessage({ type: "passkeppler.answer", action: "accept" });
       } catch {
