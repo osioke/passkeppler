@@ -98,7 +98,9 @@ To do this the extension has to run on every website, so your browser will say i
 
 **Never for this site.** Every offer has a **Never for this site** button. The site is then not watched at all. The list is in the popup under **Settings** ("Sites passkeppler won't offer to save"), where **Remove** brings a site back. The list is kept on that device only, in the extension's own storage, as plain site names (no passwords), and is not synced.
 
-For now this covers normal login, sign-up and two-step forms. Forms for changing a password, sites that don't use a normal form, and "Sign in with Google" are not noticed yet.
+**Pages with no form.** Many sites don't use a real form: their own script sends the login in the background and changes the page without reloading. These are now noticed too, when you press a button (or Enter) next to a filled password box. Buttons that look like "Show password" or "Forgot password" don't count. As before, the card only appears once the password box is gone, so a wrong password isn't offered.
+
+For now this covers normal, sign-up, two-step and no-form logins. Forms for changing a password and "Sign in with Google" are not noticed yet.
 
 ### 6. Bring in your old passwords (optional)
 

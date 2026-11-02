@@ -124,6 +124,7 @@ The extension runs a small watcher on every web page and a small background part
 - **Never for this site:** on every offer card. The host is added to a list in `chrome.storage.local` (this device only, plain host names, not synced, not encrypted: it holds no passwords). Those sites are not noticed at all (the popup says why). Settings lists them with **Remove**. **Save** adds a new entry titled with the site, with the site's address, and each name typed goes in Email if it contains an @ and in Username if not.
 - A login counts when the form is submitted, when its submit button is pressed, or when Enter is pressed in the password field, because sites differ in which of these really happens. The same login seen twice within a few seconds is kept once. The watcher starts at the very beginning of every page, and is added to pages already open when the extension is installed or refreshed.
 - The popup says whether the open page is being watched. If a login form was skipped (for example it had two password fields, or no username), it says why. The reason is kept in memory only and holds no passwords or names.
+- **No form (stage 4):** a click on a button, a `role=button` element or a plain input button, or Enter in a field, counts when it is not inside a `<form>`. The "form" is then the smallest part of the page that holds a visible password box, and the name is the closest filled field above the password inside it (a search box elsewhere on the page is not used). Buttons or ids/labels containing show, hide, reveal, toggle, eye, forgot, reset or visibility are ignored. Known limit: a click on some other button while a password box is filled in can be noticed too; the card still only appears once the password box has gone, and nothing is saved without your press.
 - passkeppler's own unlock page is never noticed, so the master password can't be offered for saving.
 - The extension runs on all websites, which browsers describe as being able to "read and change your data on all sites". It only reads a form when it is submitted.
 
@@ -132,7 +133,7 @@ It is built one kind of login at a time, easiest first, each solid before the ne
 1. **Done:** a normal login page, with the username and password on one page and a real submit.
 2. **Done:** sign-up pages (a new-password field, often a confirm field, and an email).
 3. **Done:** two-step logins (username on one page, password on the next), with password history on Update and "Never for this site".
-4. Sites that don't use a normal form submit (the login is sent in the background, or the page changes without a reload).
+4. **Done:** sites that don't use a normal form submit (the login is sent in the background, or the page changes without a reload).
 5. "Sign in with Google" and similar, where there is no password: offer to save a note that the site uses it.
 6. The hardest ones: logins inside frames, and unusual fields. Some will be missed.
 

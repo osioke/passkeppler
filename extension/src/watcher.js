@@ -2,12 +2,16 @@
 // the background part of the extension which username and password were typed. It reads nothing
 // else on the page, and what it sees is only ever passed to this extension.
 //
-// Stages 1 to 3: a normal login form (username and password on one page), a sign-up form
+// Stages 1 to 4: a normal login form (username and password on one page), a sign-up form
 // (email, maybe a username, a new password and often a "confirm" copy of it), and a two-step login
 // (the username on one step, the password on the next; the background part joins the two). A login counts when the
 // form is submitted, when its submit button is pressed, or when Enter is pressed in the password
 // field. Sites differ in which of these actually happens, so all three are watched. The same
 // login seen twice within a few seconds is only sent once.
+//
+// Stage 4: many sites have no <form> at all (the page's own script sends the login in the
+// background and changes the page without reloading). There, a click on a button or Enter in a
+// field counts too, and the "form" is the smallest part of the page that holds the password box.
 
 (function () {
   const seen = (input) => {
@@ -50,11 +54,24 @@
     if (field) send({ type: "passkeppler.firstStep", username: field.value.trim() });
   }
 
+  // For a page with no <form>: the smallest part of the page around this element that holds a
+  // visible password box (and so the name above it). Null if there is none.
+  function areaAround(element) {
+    for (let box = element; box && box !== document.documentElement; box = box.parentElement) {
+      if ([...box.querySelectorAll("input[type=password]")].some(seen)) return box;
+    }
+    return null;
+  }
+
+  // Buttons that only show the password or lead somewhere else are not a login.
+  const notLogin = /show|hide|reveal|toggle|eye|forgot|reset|visib/i;
+
   function look(form) {
     // passkeppler's own unlock page: the master password must never be offered for saving.
     if (form.id === "auth-form" && document.getElementById("view-vault")) return;
 
-    const inputs = [...form.elements].filter((input) => input instanceof HTMLInputElement && seen(input));
+    const all = form instanceof HTMLFormElement ? [...form.elements] : [...form.querySelectorAll("input")];
+    const inputs = all.filter((input) => input instanceof HTMLInputElement && seen(input));
 
     // One password field is a login. Two with the same text in them is a sign-up (new password and
     // "confirm"). Anything else, like current + new password, is a change-password form: later.
@@ -111,15 +128,25 @@
   }, true);
 
   document.addEventListener("click", (event) => {
-    const button = event.target instanceof Element && event.target.closest("button, input[type=submit], input[type=image]");
-    if (!button || !button.form) return;
-    const type = (button.getAttribute("type") || "submit").toLowerCase();
-    if (type === "submit" || type === "image") look(button.form); // not "Show password" and other plain buttons
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target && target.closest("button, input[type=submit], input[type=image], input[type=button], [role=button]");
+    if (!button) return;
+    if (button.form) {
+      const type = (button.getAttribute("type") || "submit").toLowerCase();
+      if (type === "submit" || type === "image") look(button.form); // not "Show password" and other plain buttons
+    } else if (!button.closest("form")) {
+      // No form: any button next to a password box, unless it is a "show password" or "forgot" button.
+      if (notLogin.test(button.textContent + " " + (button.getAttribute("aria-label") || "") + " " + button.id + " " + button.className + " " + (button.value || ""))) return;
+      const area = areaAround(button);
+      if (area) look(area);
+    }
   }, true);
 
   document.addEventListener("keydown", (event) => {
     const field = event.target;
-    if (event.key === "Enter" && field instanceof HTMLInputElement && field.form && ["password", "text", "email", "tel"].includes(field.type)) look(field.form);
+    if (event.key !== "Enter" || !(field instanceof HTMLInputElement) || !["password", "text", "email", "tel"].includes(field.type)) return;
+    const area = field.form || (field.closest("form") ? null : areaAround(field));
+    if (area) look(area);
   }, true);
 
   // The popup asks this, so it can say whether the page is being watched.
