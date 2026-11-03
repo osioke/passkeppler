@@ -180,7 +180,8 @@
     waiting = setInterval(() => {
       if (Date.now() - started > patience) return close(); // gave up; the icon's badge is still there
       if (Date.now() - started < 800 || !document.body) return;
-      if ([...document.querySelectorAll("input[type=password]")].some(visible)) return; // still on the login form
+      const passwordHere = globalThis.passkepplerPasswordShowing ? globalThis.passkepplerPasswordShowing() : [...document.querySelectorAll("input[type=password]")].some(visible);
+      if (passwordHere) return; // still on the login form
       // Still showing the sign-in button: it hasn't worked (yet), or you backed out.
       if (offer.provider && globalThis.passkepplerProviderShowing && globalThis.passkepplerProviderShowing()) return;
       render(offer);

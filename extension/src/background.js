@@ -23,6 +23,10 @@ const answering = new Set();
 
 const loginOf = (item) => ({ host: item.host, origin: item.origin, username: item.username, email: item.email, password: item.password, provider: item.provider || "" });
 
+// The site you are looking at. A login box inside a frame (often from another address) belongs to
+// the page that holds the frame, so that is the site we use for it.
+const siteUrl = (sender) => (sender.frameId && sender.tab && sender.tab.url ? sender.tab.url : sender.url);
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ---- What was noticed, one login per tab ----
@@ -132,6 +136,7 @@ async function setOffer(tabId, item, offer) {
 async function decideFor(tabId) {
   const item = (await readAll())[tabId];
   if (!item || (item.offer && item.offer.kind !== "locked")) return;
+  if (item.frame && !item.frameDone) return; // a login inside a frame: wait until it looks finished
   const session = await startVault();
   if (!session) {
     // Locked: we can't tell whether it is new, changed or saved, so ask to unlock first.
@@ -168,7 +173,7 @@ async function noticed(message, sender) {
   // The site comes from the page itself, not from what the page's form said.
   let url;
   try {
-    url = new URL(sender.url);
+    url = new URL(siteUrl(sender));
   } catch {
     return;
   }
@@ -188,11 +193,50 @@ async function noticed(message, sender) {
   }
 
   setSkipped(tabId, "");
+  const frame = sender.frameId !== 0;
   await change((all) => {
-    all[tabId] = { host, origin: url.origin, username, email, password, signup: message.signup === true };
+    all[tabId] = { host, origin: url.origin, username, email, password, signup: message.signup === true, ...(frame ? { frame: true } : {}) };
   });
   showBadge(tabId);
+  if (frame) watchFrame(tabId, sender.frameId, password);
   decideFor(tabId);
+}
+
+// A login made inside a frame can't be seen by the page that holds it, so we look into the frame
+// ourselves until its password box (or sign-in button) is gone, and only then offer. If the frame
+// has vanished for good (the whole page moved on), that counts as gone too. If the frame shows the
+// login again (a wrong password) it never counts, and the login waits in the popup instead.
+async function watchFrame(tabId, frameId, password, provider) {
+  let gone = 0;
+  for (let round = 0; round < 90; round++) {
+    await sleep(700);
+    const item = (await readAll())[tabId];
+    if (!item || !item.frame || item.password !== password || (item.provider || "") !== (provider || "")) return; // answered or replaced
+    if (item.frameDone) return;
+    let showing = true;
+    try {
+      const [out] = await chrome.scripting.executeScript({
+        target: { tabId, frameIds: [frameId] },
+        func: () => (globalThis.passkepplerStillSigningIn ? globalThis.passkepplerStillSigningIn() : true),
+      });
+      gone = 0;
+      showing = !out || out.result !== false;
+    } catch {
+      gone++; // not reachable: moving to another page, or gone
+      showing = gone < 4;
+    }
+    if (!showing) return frameFinished(tabId, password, provider);
+  }
+}
+
+async function frameFinished(tabId, password, provider) {
+  const kept = await change((all) => {
+    const item = all[tabId];
+    if (!item || item.password !== password || (item.provider || "") !== (provider || "")) return false;
+    item.frameDone = true;
+    return true;
+  });
+  if (kept) decideFor(tabId);
 }
 
 // A click on "Sign in with Google" (or similar). Nothing is saved or even offered until the page
@@ -201,7 +245,7 @@ async function providerClicked(message, sender) {
   if (!PROVIDERS.includes(message.provider) || !sender.url) return;
   let url;
   try {
-    url = new URL(sender.url);
+    url = new URL(siteUrl(sender));
   } catch {
     return;
   }
@@ -211,8 +255,9 @@ async function providerClicked(message, sender) {
   if (await isNever(host)) return setSkipped(tabId, "you chose “Never for this site” for it");
   setSkipped(tabId, "");
   await change((all) => {
-    all[tabId] = { host, origin: url.origin, username: "", email: "", password: "", signup: false, provider: message.provider };
+    all[tabId] = { host, origin: url.origin, username: "", email: "", password: "", signup: false, provider: message.provider, ...(sender.frameId !== 0 ? { frame: true } : {}) };
   });
+  if (sender.frameId !== 0) watchFrame(tabId, sender.frameId, "", message.provider);
   decideFor(tabId);
 }
 
@@ -220,7 +265,7 @@ async function firstStep(message, sender) {
   if (typeof message.username !== "string" || !message.username || message.username.length > 500 || !sender.url) return;
   let url;
   try {
-    url = new URL(sender.url);
+    url = new URL(siteUrl(sender));
   } catch {
     return;
   }
@@ -230,7 +275,12 @@ async function firstStep(message, sender) {
 
 // A new page asks whether an offer is waiting for its tab (a login usually changes the page).
 async function hello(sender) {
-  const item = (await readAll())[sender.tab.id];
+  let item = (await readAll())[sender.tab.id];
+  if (item && item.frame && !item.frameDone && !item.offer) {
+    // The whole page changed after a login in a frame: it moved on.
+    await frameFinished(sender.tab.id, item.password, item.provider);
+    item = (await readAll())[sender.tab.id];
+  }
   if (item && item.offer && Date.now() - item.offer.at < (item.provider ? PROVIDER_MS : OFFER_MS)) return { offer: item.offer };
   return {};
 }
@@ -332,7 +382,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
 chrome.runtime.onInstalled.addListener(async () => {
   const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
   for (const tab of tabs) {
-    chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["watcher.js", "card.js"] }).catch(() => {
+    chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: true }, files: ["watcher.js"] }).catch(() => {
+      /* a page that doesn't allow it, such as the browser's own store pages */
+    });
+    chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["card.js"] }).catch(() => {
       /* a page that doesn't allow it, such as the browser's own store pages */
     });
   }

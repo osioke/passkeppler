@@ -102,7 +102,11 @@ To do this the extension has to run on every website, so your browser will say i
 
 **"Sign in with Google" and similar.** With these there is no password to save, so passkeppler offers to save a note instead: **Note that this site uses Google?** Pressing **Save note** adds an entry for the site with no password and the note "Signs in with Google." in its notes. It is recognised by the button's short text or label ("Sign in with…", "Log in with…", "Continue with…" and Google, Facebook, Apple, GitHub, Microsoft, Twitter, LinkedIn, Amazon, Discord, Yahoo), or by a link going to that service's sign-in page. The card waits until you are back on the site and its sign-in button is gone, so backing out of the Google window offers nothing, and it never shows on the other service's own pages. If the site already has that note, nothing appears. Which Google account you chose is not known to passkeppler, so it isn't recorded.
 
-For now this covers normal, sign-up, two-step, no-form and "sign in with" logins. Forms for changing a password are not noticed yet.
+**Logins inside frames, and unusual login boxes.** A login box embedded in a page from another address (common with embedded sign-in widgets) is now watched too, and the login is saved under the page you are on, not the frame's address. Because the page can't see into the frame, passkeppler looks into it itself and offers only once the frame's password box (or sign-in button) is gone; if the frame shows the login again (a wrong password) nothing is offered. Google's own embedded "Sign in with Google" button is covered this way too. Login boxes built as page components with an open "shadow root" are also found. **Because the extension now also runs inside frames, refresh it on the extensions page and reload your open tabs after updating.**
+
+Still missed, on purpose or by limit: boxes in closed shadow roots (nothing can reach them), logins that open in a separate pop-up window (the offer is lost when that window closes), logins that are not typed in at all (passkeys, magic links, codes sent to you), and fields that aren't ordinary inputs (drawn on a canvas, or editable text areas). The popup's "Watching this page" line says whether a page is being watched and, if a form was skipped, why, so when a site misses, tell me the address and what the popup says.
+
+For now this covers normal, sign-up, two-step, no-form, frame and "sign in with" logins. Forms for changing a password are not noticed yet.
 
 ### 6. Bring in your old passwords (optional)
 

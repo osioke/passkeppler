@@ -2,12 +2,15 @@
 // the background part of the extension which username and password were typed. It reads nothing
 // else on the page, and what it sees is only ever passed to this extension.
 //
-// Stages 1 to 4: a normal login form (username and password on one page), a sign-up form
+// Stages 1 to 6: a normal login form (username and password on one page), a sign-up form
 // (email, maybe a username, a new password and often a "confirm" copy of it), and a two-step login
 // (the username on one step, the password on the next; the background part joins the two). A login counts when the
 // form is submitted, when its submit button is pressed, or when Enter is pressed in the password
 // field. Sites differ in which of these actually happens, so all three are watched. The same
 // login seen twice within a few seconds is only sent once.
+//
+// Stage 6: the watcher also runs inside frames (a login box embedded from the same or another
+// site) and looks inside open shadow roots (login boxes built as custom page components).
 //
 // Stage 4: many sites have no <form> at all (the page's own script sends the login in the
 // background and changes the page without reloading). There, a click on a button or Enter in a
@@ -54,11 +57,23 @@
     if (field) send({ type: "passkeppler.firstStep", username: field.value.trim() });
   }
 
+  // Every input under this element, including inside open shadow roots (custom page components).
+  // Boxes in a closed shadow root can't be reached by anyone, so those are not seen.
+  function collect(root) {
+    const out = [...root.querySelectorAll("input")];
+    if (root.shadowRoot) out.push(...collect(root.shadowRoot));
+    for (const el of root.querySelectorAll("*")) if (el.shadowRoot) out.push(...collect(el.shadowRoot));
+    return out;
+  }
+  const passwordShowing = () => collect(document).some((input) => input.type === "password" && seen(input));
+
   // For a page with no <form>: the smallest part of the page around this element that holds a
   // visible password box (and so the name above it). Null if there is none.
   function areaAround(element) {
-    for (let box = element; box && box !== document.documentElement; box = box.parentElement) {
-      if ([...box.querySelectorAll("input[type=password]")].some(seen)) return box;
+    for (let box = element; box && box !== document.documentElement; ) {
+      if (collect(box).some((input) => input.type === "password" && seen(input))) return box;
+      const root = box.getRootNode();
+      box = box.parentElement || (root instanceof ShadowRoot ? root.host : null); // out of a shadow root, too
     }
     return null;
   }
@@ -70,7 +85,7 @@
     // passkeppler's own unlock page: the master password must never be offered for saving.
     if (form.id === "auth-form" && document.getElementById("view-vault")) return;
 
-    const all = form instanceof HTMLFormElement ? [...form.elements] : [...form.querySelectorAll("input")];
+    const all = form instanceof HTMLFormElement ? [...new Set([...form.elements, ...collect(form)])] : collect(form);
     const inputs = all.filter((input) => input instanceof HTMLInputElement && seen(input));
 
     // One password field is a login. Two with the same text in them is a sign-up (new password and
@@ -128,7 +143,8 @@
   }, true);
 
   document.addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target : null;
+    const real = event.composedPath()[0]; // the real target, even inside a shadow root
+    const target = real instanceof Element ? real : null;
     const button = target && target.closest("button, input[type=submit], input[type=image], input[type=button], [role=button]");
     if (!button) return;
     if (button.form) {
@@ -143,7 +159,7 @@
   }, true);
 
   document.addEventListener("keydown", (event) => {
-    const field = event.target;
+    const field = event.composedPath()[0];
     if (event.key !== "Enter" || !(field instanceof HTMLInputElement) || !["password", "text", "email", "tel"].includes(field.type)) return;
     const area = field.form || (field.closest("form") ? null : areaAround(field));
     if (area) look(area);
@@ -182,8 +198,13 @@
   globalThis.passkepplerProviderShowing = () =>
     [...document.querySelectorAll("button, a, [role=button], input[type=submit], input[type=button], input[type=image]")].some((el) => seen(el) && providerOf(el));
 
+  // card.js and the background part ask these about this page or frame.
+  globalThis.passkepplerPasswordShowing = passwordShowing;
+  globalThis.passkepplerStillSigningIn = () => passwordShowing() || globalThis.passkepplerProviderShowing();
+
   document.addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target : null;
+    const real = event.composedPath()[0];
+    const target = real instanceof Element ? real : null;
     const clicked = target && target.closest("button, a, [role=button], input[type=submit], input[type=button], input[type=image]");
     const provider = clicked && providerOf(clicked);
     if (provider) send({ type: "passkeppler.provider", provider });
